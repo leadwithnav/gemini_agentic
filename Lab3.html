@@ -207,61 +207,40 @@
         <li class="step-item" onclick="goToStep(1)">
           <span class="step-number">2</span>
           <div class="step-info">
-            <span class="step-title">Part 3.1: Sequential Graph Agents</span>
+            <span class="step-title">Part 3.4: Graph / DAG State Agents</span>
             <span class="step-duration">10 mins</span>
           </div>
         </li>
         <li class="step-item" onclick="goToStep(2)">
           <span class="step-number">3</span>
           <div class="step-info">
-            <span class="step-title">Part 3.2: Parallel Graph Agents</span>
+            <span class="step-title">Part 3.5: Dynamic Router Agents</span>
             <span class="step-duration">10 mins</span>
           </div>
         </li>
         <li class="step-item" onclick="goToStep(3)">
           <span class="step-number">4</span>
           <div class="step-info">
-            <span class="step-title">Part 3.3: Loop Graph Agents</span>
+            <span class="step-title">Part 3.6: Collaborative Swarms</span>
             <span class="step-duration">10 mins</span>
           </div>
         </li>
         <li class="step-item" onclick="goToStep(4)">
           <span class="step-number">5</span>
           <div class="step-info">
-            <span class="step-title">Part 3.4: Graph / DAG State Agents</span>
+            <span class="step-title">Part 3.7: Hybrid Workflow</span>
             <span class="step-duration">10 mins</span>
           </div>
         </li>
         <li class="step-item" onclick="goToStep(5)">
           <span class="step-number">6</span>
           <div class="step-info">
-            <span class="step-title">Part 3.5: Dynamic Router Agents</span>
-            <span class="step-duration">10 mins</span>
-          </div>
-        </li>
-        <li class="step-item" onclick="goToStep(6)">
-          <span class="step-number">7</span>
-          <div class="step-info">
-            <span class="step-title">Part 3.6: Collaborative Swarms</span>
-            <span class="step-duration">10 mins</span>
-          </div>
-        </li>
-        <li class="step-item" onclick="goToStep(7)">
-          <span class="step-number">8</span>
-          <div class="step-info">
-            <span class="step-title">Part 3.7: Hybrid Workflow</span>
-            <span class="step-duration">10 mins</span>
-          </div>
-        </li>
-        <li class="step-item" onclick="goToStep(8)">
-          <span class="step-number">9</span>
-          <div class="step-info">
             <span class="step-title">Knowledge Assessment</span>
             <span class="step-duration">5 mins</span>
           </div>
         </li>
-        <li class="step-item" onclick="goToStep(9)">
-          <span class="step-number">10</span>
+        <li class="step-item" onclick="goToStep(6)">
+          <span class="step-number">7</span>
           <div class="step-info">
             <span class="step-title">Completion Certificate</span>
             <span class="step-duration">2 mins</span>
@@ -276,7 +255,7 @@
       <!-- STEP 0: OVERVIEW -->
       <section class="content-panel active" id="panel-0">
         <h1>Lab 3: Multi-Agent Orchestration Patterns (ADK V2)</h1>
-        <p class="subtitle">Master seven core multi-agent design patterns using Google ADK V2 Graph Architecture (<code>google.adk.Workflow</code>) for the <b>CME Internal Product Support Desk</b>.</p>
+        <p class="subtitle">Master four core multi-agent design patterns using Google ADK V2 Graph Architecture (<code>google.adk.Workflow</code>) for the <b>CME Internal Product Support Desk</b>.</p>
 
         <div class="callout callout-cyan">
           <div class="callout-title">💡 CME Internal Product Support Desk Dataset</div>
@@ -331,107 +310,8 @@ adk web --port 8000 .</code></pre>
         </ul>
       </section>
 
-      <!-- STEP 1: SEQUENTIAL GRAPH AGENTS -->
+      <!-- STEP 1: GRAPH / DAG AGENTS -->
       <section class="content-panel" id="panel-1">
-        <h1>Part 3.1: Sequential Graph Agents (Investigate Ticket)</h1>
-        <p class="subtitle">Linear execution graph for investigating a product support ticket.</p>
-
-        <div class="callout callout-purple">
-          <div class="callout-title">🔄 Sequential Graph Flow</div>
-          <div class="callout-content">
-            Sub-agents execute in strict linear order: <b>Get Ticket Node</b> (INC-101) → <b>Get Product Details Node</b> (ES) → <b>Check Related Incidents Node</b> → <b>Generate Support Summary Node</b>.
-          </div>
-        </div>
-
-        <div class="code-block-container">
-          <div class="code-header">
-            <span class="code-lang-badge">ADK Web UI Test Prompt</span>
-            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-          </div>
-          <pre class="code-content"><code>Investigate support ticket INC-101 and generate an executive support summary.</code></pre>
-        </div>
-
-        <ul class="task-checklist">
-          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_1')">
-            <div class="custom-checkbox">
-              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-            </div>
-            <div class="task-content">
-              <span class="task-label">Test part3_1_sequential_agent in Web UI</span>
-              <span class="task-desc">Select `part3_1_sequential_agent` in dropdown, paste prompt, and verify linear ticket investigation.</span>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <!-- STEP 2: PARALLEL GRAPH AGENTS -->
-      <section class="content-panel" id="panel-2">
-        <h1>Part 3.2: Parallel Graph Agents (Product Health Check)</h1>
-        <p class="subtitle">Concurrent graph fan-out & fan-in execution for a comprehensive product health check.</p>
-
-        <div class="callout callout-cyan">
-          <div class="callout-title">⚡ Parallel Graph Fan-out</div>
-          <div class="callout-content">
-            Graph Orchestrator dispatches workers concurrently: <b>Worker 1: Product Specs</b> + <b>Worker 2: Market Status</b> + <b>Worker 3: Active Incident Check</b> → <b>Health Summary Aggregator</b>.
-          </div>
-        </div>
-
-        <div class="code-block-container">
-          <div class="code-header">
-            <span class="code-lang-badge">ADK Web UI Test Prompt</span>
-            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-          </div>
-          <pre class="code-content"><code>Perform a comprehensive product health check for E-mini Nasdaq futures 'NQ'.</code></pre>
-        </div>
-
-        <ul class="task-checklist">
-          <li class="task-checkbox-container" onclick="toggleTask(this, 't2_1')">
-            <div class="custom-checkbox">
-              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-            </div>
-            <div class="task-content">
-              <span class="task-label">Test part3_2_parallel_agent in Web UI</span>
-              <span class="task-desc">Select `part3_2_parallel_agent` and observe all 3 health workers evaluating concurrently.</span>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <!-- STEP 3: LOOP GRAPH AGENTS -->
-      <section class="content-panel" id="panel-3">
-        <h1>Part 3.3: Iterative Loop Graph Agents (Improve Summary)</h1>
-        <p class="subtitle">Cyclic drafting & review loop to improve an incident summary report.</p>
-
-        <div class="callout callout-amber">
-          <div class="callout-title">🔁 Loop Graph Refinement</div>
-          <div class="callout-content">
-            Graph Orchestrator manages a loop: <b>Summary Writer Node</b> drafts briefing ⇄ <b>Quality Reviewer Node</b> verifies required fields (Ticket ID, Symbol, Description, Status, Team) & updates status → <b>Publisher Node</b> prints bulletin.
-          </div>
-        </div>
-
-        <div class="code-block-container">
-          <div class="code-header">
-            <span class="code-lang-badge">ADK Web UI Test Prompt</span>
-            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-          </div>
-          <pre class="code-content"><code>Draft and refine an incident summary report for ticket INC-102.</code></pre>
-        </div>
-
-        <ul class="task-checklist">
-          <li class="task-checkbox-container" onclick="toggleTask(this, 't3_1')">
-            <div class="custom-checkbox">
-              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-            </div>
-            <div class="task-content">
-              <span class="task-label">Test part3_3_loop_agent in Web UI</span>
-              <span class="task-desc">Select `part3_3_loop_agent` and observe iterative drafting and quality review until publication.</span>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <!-- STEP 4: GRAPH / DAG AGENTS -->
-      <section class="content-panel" id="panel-4">
         <h1>Part 3.4: Graph / DAG State Agents (Route Support Request)</h1>
         <p class="subtitle">Conditional state-driven routing between specialized support teams.</p>
 
@@ -440,6 +320,10 @@ adk web --port 8000 .</code></pre>
           <div class="callout-content">
             The Orchestrator evaluates support query context and branches to: <b>Market Data Support</b> (feed delays) OR <b>Platform Operations</b> (trading halts) OR <b>Product Support</b> (margin inquiries).
           </div>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <img src="images/part3_4_graph.png" alt="Graph Agent Architecture" style="max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
         </div>
 
         <div class="code-block-container">
@@ -467,7 +351,7 @@ adk web --port 8000 .</code></pre>
         </div>
 
         <ul class="task-checklist">
-          <li class="task-checkbox-container" onclick="toggleTask(this, 't4_1')">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_1')">
             <div class="custom-checkbox">
               <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </div>
@@ -479,8 +363,8 @@ adk web --port 8000 .</code></pre>
         </ul>
       </section>
 
-      <!-- STEP 5: DYNAMIC ROUTER AGENTS -->
-      <section class="content-panel" id="panel-5">
+      <!-- STEP 2: DYNAMIC ROUTER AGENTS -->
+      <section class="content-panel" id="panel-2">
         <h1>Part 3.5: Dynamic Adaptive Router (Help Desk Assistant)</h1>
         <p class="subtitle">Runtime intent classification and dynamic specialist dispatching.</p>
 
@@ -489,6 +373,10 @@ adk web --port 8000 .</code></pre>
           <div class="callout-content">
             Analyzes incoming employee query context at runtime and dynamically dispatches to specialized agents: <b>Product Agent</b>, <b>Incident Agent</b>, <b>Market Status Agent</b>, or <b>Support Team Agent</b>.
           </div>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <img src="images/part3_5_dynamic.png" alt="Dynamic Router Agent Architecture" style="max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
         </div>
 
         <div class="code-block-container">
@@ -524,7 +412,7 @@ adk web --port 8000 .</code></pre>
         </div>
 
         <ul class="task-checklist">
-          <li class="task-checkbox-container" onclick="toggleTask(this, 't5_1')">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't2_1')">
             <div class="custom-checkbox">
               <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </div>
@@ -536,8 +424,8 @@ adk web --port 8000 .</code></pre>
         </ul>
       </section>
 
-      <!-- STEP 6: COLLABORATIVE SWARMS -->
-      <section class="content-panel" id="panel-6">
+      <!-- STEP 3: COLLABORATIVE SWARMS -->
+      <section class="content-panel" id="panel-3">
         <h1>Part 3.6: Collaborative Peer Swarms (Investigate Issue)</h1>
         <p class="subtitle">Peer delegation and consensus collaboration across support team specialists.</p>
 
@@ -546,6 +434,10 @@ adk web --port 8000 .</code></pre>
           <div class="callout-content">
             Peer sub-agents (<b>Product Agent</b> + <b>Incident Agent</b> + <b>Routing Agent</b>) collaborate and hand off control to investigate service issues → <b>Supervisor Agent</b> produces final recommendation.
           </div>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <img src="images/part3_6_collaborative.png" alt="Collaborative Support Team Architecture" style="max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
         </div>
 
         <div class="code-block-container">
@@ -557,7 +449,7 @@ adk web --port 8000 .</code></pre>
         </div>
 
         <ul class="task-checklist">
-          <li class="task-checkbox-container" onclick="toggleTask(this, 't6_1')">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't3_1')">
             <div class="custom-checkbox">
               <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </div>
@@ -569,8 +461,8 @@ adk web --port 8000 .</code></pre>
         </ul>
       </section>
 
-      <!-- STEP 7: HYBRID WORKFLOW -->
-      <section class="content-panel" id="panel-7">
+      <!-- STEP 4: HYBRID WORKFLOW -->
+      <section class="content-panel" id="panel-4">
         <h1>Part 3.7: Dynamic Adaptive Hybrid Workflow</h1>
         <p class="subtitle">Combined intent classification, single-specialist routing, parallel evidence gathering, supervisor reasoning, and adaptive ticket creation.</p>
 
@@ -581,40 +473,8 @@ adk web --port 8000 .</code></pre>
           </div>
         </div>
 
-        <div class="code-block-container">
-          <div class="code-header">
-            <span class="code-lang-badge">Hybrid Workflow Architecture Diagram</span>
-            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-          </div>
-          <pre class="code-content"><code>                        User
-                          │
-                          ▼
-                   Intent / Planner
-                          │
-              ┌───────────┴────────────┐
-              │                        │
-        Simple request           Investigation
-              │                        │
-              ▼                ┌───────┼───────┐
-        One specialist          ▼       ▼       ▼
-                            Product   Market  Incident
-                               │       │       │
-                               └───────┼───────┘
-                                       ▼
-                                     JOIN
-                                       │
-                                       ▼
-                                  Supervisor
-                                       │
-                          ┌────────────┴────────────┐
-                          │                         │
-                  Incident exists            No incident +
-                          │                    real issue
-                          ▼                         │
-                   Reference ticket               
-                                                  │
-                                                  ▼
-                                           Create Ticket</code></pre>
+        <div style="text-align: center; margin: 24px 0;">
+          <img src="images/part3_7_hybrid.png" alt="Hybrid Workflow Architecture" style="max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
         </div>
 
         <div class="code-block-container">
@@ -634,7 +494,7 @@ adk web --port 8000 .</code></pre>
         </div>
 
         <ul class="task-checklist">
-          <li class="task-checkbox-container" onclick="toggleTask(this, 't7_1')">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't4_1')">
             <div class="custom-checkbox">
               <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </div>
@@ -705,7 +565,7 @@ adk web --port 8000 .</code></pre>
 
   <script>
     let currentStep = 0;
-    const totalSteps = 10;
+    const totalSteps = 7;
 
     function goToStep(index) {
       if (index < 0 || index >= totalSteps) return;
@@ -715,7 +575,7 @@ adk web --port 8000 .</code></pre>
 
       currentStep = index;
       
-      const targetPanel = document.getElementById(index === 8 ? 'panel-quiz' : (index === 9 ? 'panel-cert' : `panel-${index}`));
+      const targetPanel = document.getElementById(index === 5 ? 'panel-quiz' : (index === 6 ? 'panel-cert' : `panel-${index}`));
       if (targetPanel) targetPanel.classList.add('active');
 
       const stepItems = document.querySelectorAll('.step-item');
@@ -725,7 +585,7 @@ adk web --port 8000 .</code></pre>
       document.getElementById('btnNext').innerText = index === totalSteps - 1 ? 'Finish Lab' : 'Next Step →';
 
       updateProgress();
-      if (index === 9) generateCertificate();
+      if (index === 6) generateCertificate();
     }
 
     function changeStep(delta) {
@@ -748,7 +608,7 @@ adk web --port 8000 .</code></pre>
       const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', nextTheme);
       document.getElementById('themeIcon').innerText = nextTheme === 'dark' ? '🌙' : '☀️';
-      if (currentStep === 9) generateCertificate();
+      if (currentStep === 6) generateCertificate();
     }
 
     function toggleTask(el, id) {
@@ -833,7 +693,7 @@ adk web --port 8000 .</code></pre>
 
       ctx.fillStyle = "#64748b";
       ctx.font = "13px Inter, sans-serif";
-      ctx.fillText("CME Internal Product Support Desk • Sequential • Parallel • Loop • Graph • Dynamic • Swarms • Hybrid", canvas.width / 2, 335);
+      ctx.fillText("CME Internal Product Support Desk • Graph • Dynamic • Swarms • Hybrid", canvas.width / 2, 335);
 
       // Date & Seal
       const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
