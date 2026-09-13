@@ -1,0 +1,7 @@
+gcloud run deploy cme-support-streamlit \
+  --source . \
+  --project instructor-02 \
+  --region us-central1 \
+  --set-env-vars="ADK_BASE_URL=https://cme-support-agent-1064748107249.us-central1.run.app,APP_NAME=lab9_cloud_run.app.configured_agent"
+
+gcloud run services proxy cme-support-streamlit   --project instructor-02   --region us-central1   --port 8085

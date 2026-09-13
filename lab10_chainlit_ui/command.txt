@@ -1,0 +1,9 @@
+gcloud run deploy cme-support-ui \
+  --source . \
+  --project instructor-02 \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars ADK_BASE_URL=https://cme-support-agent-qqufvifaga-uc.a.run.app
+
+gcloud run services proxy cme-support-ui   --project instructor-02   --region us-central1   --port 8082
+

@@ -1,0 +1,10 @@
+.adk/
+**/.adk/
+*.db
+.env
+.env.*
+__pycache__/
+*.pyc
+credentials.json
+client_secret*.json
+application_default_credentials.json

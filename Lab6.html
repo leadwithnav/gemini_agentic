@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 6: ADK Callback Agents & Security Governance | CME Support Desk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --bg-card: #19243b;
+      --bg-card-hover: #22304e;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --border-color: #263554;
+      --code-bg: #070a12;
+      --sidebar-width: 330px;
+      --header-height: 70px;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #9333ea;
+      --accent-blue: #2563eb;
+      --accent-green: #059669;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-cyan: #0891b2;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* Top Navbar */
+    .navbar {
+      height: var(--header-height); background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color); display: flex; align-items: center;
+      justify-content: space-between; padding: 0 24px; z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-logo {
+      width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; color: white;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+    }
+    .brand-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 18px; color: var(--text-primary); }
+    .brand-subtitle { font-size: 12px; color: var(--text-secondary); }
+
+    .nav-actions { display: flex; align-items: center; gap: 20px; }
+    .progress-bar-container { width: 160px; height: 8px; background-color: var(--border-color); border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan)); transition: width 0.3s ease; }
+    .progress-percent { font-size: 13px; font-weight: 600; color: var(--accent-purple); }
+    .theme-toggle {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary);
+      padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .theme-toggle:hover { background: var(--bg-card-hover); }
+
+    /* Layout Wrapper */
+    .main-wrapper { display: flex; flex: 1; height: calc(100vh - var(--header-height)); overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar { width: var(--sidebar-width); background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-heading { padding: 20px 20px 10px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .step-list { list-style: none; padding: 0 12px 20px 12px; }
+    .step-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 6px; transition: all 0.2s; border: 1px solid transparent; }
+    .step-item:hover { background-color: var(--bg-card-hover); }
+    .step-item.active { background-color: var(--bg-card); border-color: var(--accent-purple); box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15); }
+    .step-number { width: 28px; height: 28px; border-radius: 50%; background-color: var(--border-color); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .step-item.active .step-number { background-color: var(--accent-purple); color: white; }
+    .step-item.completed .step-number { background-color: var(--accent-cyan); color: white; }
+    .step-info { display: flex; flex-direction: column; }
+    .step-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .step-duration { font-size: 11px; color: var(--text-muted); }
+
+    /* Content Area */
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 30px 40px 100px 40px; }
+    .content-panel { display: none; max-width: 960px; margin: 0 auto; width: 100%; }
+    .content-panel.active { display: block; }
+
+    h1 { font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+    p.subtitle { font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5; }
+
+    /* Callouts */
+    .callout { border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; border-left: 4px solid; background: var(--bg-card); }
+    .callout-purple { border-left-color: var(--accent-purple); }
+    .callout-cyan { border-left-color: var(--accent-cyan); }
+    .callout-amber { border-left-color: var(--accent-amber); }
+    .callout-green { border-left-color: var(--accent-green); }
+    .callout-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .callout-purple .callout-title { color: var(--accent-purple); }
+    .callout-cyan .callout-title { color: var(--accent-cyan); }
+    .callout-amber .callout-title { color: var(--accent-amber); }
+    .callout-green .callout-title { color: var(--accent-green); }
+    .callout-content { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* OS Tabs & Code Blocks */
+    .os-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .os-tab-btn {
+      padding: 8px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color);
+      border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 13px; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .os-tab-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    .os-tab-btn.active { background: var(--accent-purple); color: white; border-color: var(--accent-purple); font-weight: 600; }
+
+    .os-content { display: none; }
+    .os-content.active { display: block; }
+
+    .code-block-container {
+      background-color: var(--code-bg); border: 1px solid var(--border-color);
+      border-radius: 10px; margin-bottom: 24px; overflow: hidden;
+    }
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color);
+    }
+    .code-lang-badge { font-family: 'Fira Code', monospace; font-size: 12px; color: var(--accent-purple); font-weight: 600; }
+    .copy-btn {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary);
+      padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;
+    }
+    .copy-btn:hover { color: var(--text-primary); background: var(--bg-card-hover); }
+    pre.code-content {
+      padding: 16px; font-family: 'Fira Code', monospace; font-size: 13px;
+      line-height: 1.6; color: #e2e8f0; overflow-x: auto; white-space: pre;
+    }
+
+    /* Checklist */
+    .task-checklist { list-style: none; margin-bottom: 28px; }
+    .task-checkbox-container {
+      display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px;
+      margin-bottom: 10px; cursor: pointer; transition: all 0.2s;
+    }
+    .task-checkbox-container:hover { background: var(--bg-card-hover); }
+    .task-checkbox-container.checked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+    .custom-checkbox {
+      width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border-color);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+      transition: all 0.2s;
+    }
+    .task-checkbox-container.checked .custom-checkbox { background: var(--accent-green); border-color: var(--accent-green); }
+    .check-mark { width: 12px; height: 12px; fill: white; display: none; }
+    .task-checkbox-container.checked .check-mark { display: block; }
+    .task-content { display: flex; flex-direction: column; }
+    .task-label { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+    .task-desc { font-size: 12px; color: var(--text-secondary); }
+
+    /* Quiz */
+    .quiz-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .quiz-question { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 14px; }
+    .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+    .quiz-option {
+      padding: 12px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color);
+      border-radius: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+    }
+    .quiz-option:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    .quiz-option.correct { background: rgba(16, 185, 129, 0.15); border-color: var(--accent-green); color: var(--accent-green); font-weight: 600; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: var(--accent-red); color: var(--accent-red); }
+
+    /* Certificate */
+    .cert-canvas-container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .cert-input {
+      width: 100%; max-width: 400px; padding: 12px 16px; background: var(--bg-card);
+      border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);
+      font-size: 14px; outline: none; text-align: center;
+    }
+    .cert-input:focus { border-color: var(--accent-purple); }
+    canvas { border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); max-width: 100%; height: auto; }
+
+    /* Footer Nav */
+    .nav-bar {
+      position: fixed; bottom: 0; right: 0; left: var(--sidebar-width); height: 70px;
+      background: var(--bg-secondary); border-top: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 40px; z-index: 90;
+    }
+    .btn-nav {
+      padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+      border: 1px solid transparent; transition: all 0.2s;
+    }
+    .btn-prev { background: var(--bg-card); border-color: var(--border-color); color: var(--text-secondary); }
+    .btn-prev:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    .btn-next { background: var(--accent-purple); color: white; }
+    .btn-next:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">L6</div>
+      <div>
+        <div class="brand-title">Lab 6: ADK Callback Agents & Security Governance</div>
+        <div class="brand-subtitle">Google ADK V2 • ADK Web Testing & Tool Callbacks</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span class="progress-percent" id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Lab Modules</div>
+      <ul class="step-list" id="stepsList">
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">1</span>
+          <div class="step-info">
+            <span class="step-title">Callback Architecture</span>
+            <span class="step-duration">Security & Observability</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(1)">
+          <span class="step-number">2</span>
+          <div class="step-info">
+            <span class="step-title">Agent Definition</span>
+            <span class="step-duration">app/agent.py</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(2)">
+          <span class="step-number">3</span>
+          <div class="step-info">
+            <span class="step-title">Testing with ADK Web</span>
+            <span class="step-duration">adk web lab6_callback_agents</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(3)">
+          <span class="step-number">4</span>
+          <div class="step-info">
+            <span class="step-title">Knowledge Assessment</span>
+            <span class="step-duration">Quiz & Validation</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(4)">
+          <span class="step-number">5</span>
+          <div class="step-info">
+            <span class="step-title">Completion Certificate</span>
+            <span class="step-duration">Get Verified</span>
+          </div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+
+      <!-- STEP 1: ARCHITECTURE -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Step 1: ADK Callback Architecture & Security Governance</h1>
+        <p class="subtitle">Understand how before_tool_callback and after_tool_callback enforce governance and latency metrics in Google ADK V2.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🛡️ Security Interceptor Pipeline</div>
+          <div class="callout-content">
+            Callbacks act as middleware interceptors executed before and after every tool invocation:
+            <ul style="margin-left:20px; margin-top:6px; line-height:1.7;">
+              <li><b><code>before_tool_callback</code></b>: Validates Pydantic inputs, checks user permissions (e.g. <code>alice</code> vs <code>guest</code>), and enforces business guardrails (SELECT only, no mutation operations, authorized tables, project & dataset matching).</li>
+              <li><b><code>after_tool_callback</code></b>: Records tool latency, logs structured observability metrics, and sanitizes sensitive response fields.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout-amber">
+          <div class="callout-title">📂 Directory Architecture</div>
+          <div class="callout-content">
+            <pre style="font-family:'Fira Code',monospace; font-size:12px; background:var(--code-bg); padding:10px; border-radius:6px; margin-top:8px;">
+lab6_callback_agents/
+├── app/
+│   └── agent.py               # Workflow graph with before & after tool callbacks
+├── callbacks/
+│   └── callback_tools.py          # Modular helper functions (validate_input, check_permission, etc.)
+├── integrations/
+│   ├── incident_api/              # FastAPI incident REST backend
+│   └── incident_mcp/              # FastMCP incident server
+└── tools/
+    ├── bigquery_tools.py          # BigQuery tools
+    └── mcp_tools.py               # MCP tools</pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Review ADK V2 Callback Pipeline</span>
+              <span class="task-desc">Understand how before_tool_callback blocks invalid/unauthorized tool calls before execution.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_2')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Verify Directory Structure</span>
+              <span class="task-desc">Confirm app/agent.py, callbacks, integrations, and tools directory layout.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 2: AGENT DEFINITION -->
+      <section class="content-panel" id="panel-1">
+        <h1>Step 2: Agent Workflow Definition (app/agent.py)</h1>
+        <p class="subtitle">Review the root workflow graph linking specialist sub-agents with <code>before_tool_callback</code> and <code>after_tool_callback</code>.</p>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Python • app/agent.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>from google.adk import Agent, Workflow, Event, Context
+from ..tools.mcp_tools import incident_mcp_toolset
+from ..tools.bigquery_tools import MODEL, PROJECT_ID, DATASET_ID, bigquery_toolset
+from ..callbacks.callback_tools import before_tool_callback, after_tool_callback
+
+# Specialist Agent with Callbacks Attached
+market_status_support_agent = Agent(
+    name="market_status_support_agent",
+    model=MODEL,
+    instruction="...",
+    tools=[bigquery_toolset],
+    before_tool_callback=before_tool_callback,
+    after_tool_callback=after_tool_callback,
+)
+
+# Root Routing Workflow
+root_agent = Workflow(
+    name="lab6_callback_support_routing",
+    edges=[
+        ("START", save_original_request, request_classifier, route_request),
+        (route_request, {
+            "INCIDENT_SUPPORT": incident_support_agent,
+            "MARKET_STATUS_SUPPORT": market_status_support_agent,
+            "PRODUCT_SUPPORT": product_support_agent,
+        }),
+    ],
+)</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't2_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Inspect lab6_callback_agents/app/agent.py</span>
+              <span class="task-desc">Verify root_agent workflow, specialist agents, and relative module imports.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 3: TESTING WITH ADK WEB -->
+      <section class="content-panel" id="panel-2">
+        <h1>Step 3: Launching & Testing with ADK Web GUI</h1>
+        <p class="subtitle">Launch the ADK Developer UI using <code>adk web lab6_callback_agents</code> and test CME support prompts interactively.</p>
+
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Bash Command • Launch ADK Web</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Launch ADK Web GUI for lab6_callback_agents
+adk web lab6_callback_agents</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell Command • Launch ADK Web</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Launch ADK Web GUI for lab6_callback_agents in PowerShell
+adk web lab6_callback_agents</code></pre>
+          </div>
+        </div>
+
+        <div class="callout callout-green">
+          <div class="callout-title">💬 Interactive Test Prompts</div>
+          <div class="callout-content">
+            Enter the following test prompts in the ADK Web chat interface:
+            <ul style="margin-left:20px; margin-top:8px; line-height:1.8;">
+              <li><b>Product Support</b>: <code>"What is the contract size of NQ?"</code></li>
+              <li><b>Market Status</b>: <code>"Is NQ currently trading?"</code></li>
+              <li><b>Incident Support</b>: <code>"Are there any active incidents for NQ?"</code></li>
+              <li><b>Security Guardrail Test (Blocked)</b>: <code>"DROP TABLE PRODUCTS"</code></li>
+            </ul>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't3_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Launch adk web lab6_callback_agents</span>
+              <span class="task-desc">Open the ADK Web GUI server in your browser.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't3_2')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Test Support Prompts & Observe Callbacks</span>
+              <span class="task-desc">Submit queries and verify before_tool_callback logs and after_tool_callback metrics.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 4: KNOWLEDGE ASSESSMENT -->
+      <section class="content-panel" id="panel-3">
+        <h1>Step 4: Knowledge Assessment</h1>
+        <p class="subtitle">Test your understanding of before_tool_callback, after_tool_callback, and ADK Web testing.</p>
+
+        <div class="quiz-card">
+          <div class="quiz-question">1. What command launches the ADK Web Developer GUI for testing `lab6_callback_agents`?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, true)">A) adk web lab6_callback_agents</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">B) python runner.py</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) gcloud app run</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">2. Where is the main workflow definition located in `lab6_callback_agents`?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) callbacks/callback_tools.py</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) app/agent.py</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) tools/bigquery_tools.py</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">3. How does `before_tool_callback` block an unauthorized SQL mutation like `DROP TABLE`?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) By terminating the Python process</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) By detecting forbidden operations in check_business_guardrails and returning block("Operation 'DROP' is not allowed.")</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) By sending a 404 HTTP error</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 5: CERTIFICATE -->
+      <section class="content-panel" id="panel-4">
+        <h1>Step 5: Completion Certificate</h1>
+        <p class="subtitle">Enter your name below to generate your official Lab 6 completion certificate.</p>
+
+        <div class="cert-canvas-container">
+          <input type="text" id="studentNameInput" class="cert-input" placeholder="Enter Your Full Name" oninput="generateCertificate()">
+          <canvas id="certCanvas" width="800" height="500"></canvas>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer Nav -->
+    <footer class="nav-bar">
+      <button class="btn-nav btn-prev" id="btnPrev" onclick="changeStep(-1)">← Previous</button>
+      <button class="btn-nav btn-next" id="btnNext" onclick="changeStep(1)">Next Step →</button>
+    </footer>
+
+  </div>
+
+  <script>
+    let currentStep = 0;
+    const totalSteps = 5;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      updateStepUI();
+      updateProgress();
+    });
+
+    function goToStep(index) {
+      if (index < 0 || index >= totalSteps) return;
+      currentStep = index;
+      updateStepUI();
+      if (currentStep === 4) {
+        setTimeout(generateCertificate, 100);
+      }
+    }
+
+    function changeStep(delta) {
+      goToStep(currentStep + delta);
+    }
+
+    function updateStepUI() {
+      document.querySelectorAll('.content-panel').forEach((panel, i) => {
+        panel.classList.toggle('active', i === currentStep);
+      });
+
+      document.querySelectorAll('.step-item').forEach((item, i) => {
+        item.classList.toggle('active', i === currentStep);
+        if (i < currentStep) item.classList.add('completed');
+      });
+
+      document.getElementById('btnPrev').style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+      document.getElementById('btnNext').innerText = currentStep === totalSteps - 1 ? 'Finish Lab 🎉' : 'Next Step →';
+    }
+
+    function switchOsTab(os) {
+      document.querySelectorAll('.os-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.os-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelectorAll(`.os-tab-btn`).forEach(btn => {
+        if (btn.innerText.toLowerCase().includes(os)) btn.classList.add('active');
+      });
+
+      document.querySelectorAll(`.os-content[data-os="${os}"]`).forEach(c => c.classList.add('active'));
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', nextTheme);
+      document.getElementById('themeIcon').innerText = nextTheme === 'dark' ? '🌙' : '☀️';
+      if (currentStep === 4) generateCertificate();
+    }
+
+    function toggleTask(el, id) {
+      el.classList.toggle('checked');
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const totalTasks = document.querySelectorAll('.task-checkbox-container').length;
+      const checkedTasks = document.querySelectorAll('.task-checkbox-container.checked').length;
+      const percent = totalTasks === 0 ? 0 : Math.round((checkedTasks / totalTasks) * 100);
+
+      document.getElementById('progressBar').style.width = percent + '%';
+      document.getElementById('progressPercent').innerText = percent + '%';
+    }
+
+    function copyCode(btn) {
+      const code = btn.parentElement.nextElementSibling.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        setTimeout(() => btn.innerText = orig, 1500);
+      });
+    }
+
+    function checkQuiz(el, isCorrect) {
+      const parent = el.parentElement;
+      parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct', 'incorrect'));
+      if (isCorrect) {
+        el.classList.add('correct');
+      } else {
+        el.classList.add('incorrect');
+      }
+    }
+
+    function generateCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const name = document.getElementById('studentNameInput').value.trim() || "ADK Callbacks & Governance Engineer";
+
+      ctx.fillStyle = "#0b0f19";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Decorative Border
+      ctx.strokeStyle = "#a855f7";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+      ctx.strokeStyle = "#06b6d4";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(28, 28, canvas.width - 56, canvas.height - 56);
+
+      // Title
+      ctx.fillStyle = "#a855f7";
+      ctx.font = "bold 26px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("CERTIFICATE OF COMPLETION", canvas.width / 2, 90);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "14px Inter, sans-serif";
+      ctx.fillText("PROUDLY PRESENTED TO", canvas.width / 2, 130);
+
+      // Student Name
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 32px Outfit, sans-serif";
+      ctx.fillText(name, canvas.width / 2, 190);
+
+      ctx.strokeStyle = "#263554";
+      ctx.beginPath();
+      ctx.moveTo(200, 210);
+      ctx.lineTo(600, 210);
+      ctx.stroke();
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "15px Inter, sans-serif";
+      ctx.fillText("For successfully completing hands-on training in", canvas.width / 2, 260);
+
+      ctx.fillStyle = "#06b6d4";
+      ctx.font = "bold 20px Outfit, sans-serif";
+      ctx.fillText("Lab 6: ADK Before & After Tool Callbacks & Security Governance", canvas.width / 2, 300);
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "13px Inter, sans-serif";
+      ctx.fillText("Google ADK V2 • ADK Web • before_tool_callback • after_tool_callback • Security Guardrails", canvas.width / 2, 335);
+
+      // Date & Seal
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "12px Inter, sans-serif";
+      ctx.fillText(`Issued on ${today} • CME Group AI Training`, canvas.width / 2, 420);
+    }
+  </script>
+</body>
+</html>

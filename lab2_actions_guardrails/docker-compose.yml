@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: opa_cme_agent
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./policy.rego:/policies/policy.rego
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "/policies/policy.rego"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8181/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 4: Enterprise BigQuery Integration & Data Agents (ADK V2) | CME Internal Support Desk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --bg-card: #19243b;
+      --bg-card-hover: #22304e;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --border-color: #263554;
+      --code-bg: #070a12;
+      --sidebar-width: 330px;
+      --header-height: 70px;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #9333ea;
+      --accent-blue: #2563eb;
+      --accent-green: #059669;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-cyan: #0891b2;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .navbar {
+      height: var(--header-height); background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color); display: flex; align-items: center;
+      justify-content: space-between; padding: 0 24px; z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-logo {
+      width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 20px; color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .brand-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 18px; color: var(--text-primary); }
+    .brand-subtitle { font-size: 12px; color: var(--text-secondary); }
+
+    .nav-actions { display: flex; align-items: center; gap: 20px; }
+    .progress-bar-container { width: 160px; height: 8px; background-color: var(--border-color); border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-green)); transition: width 0.3s ease; }
+    .progress-percent { font-size: 13px; font-weight: 600; color: var(--accent-green); }
+    .theme-toggle {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary);
+      padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .theme-toggle:hover { background: var(--bg-card-hover); }
+
+    .main-wrapper { display: flex; flex: 1; height: calc(100vh - var(--header-height)); overflow: hidden; }
+
+    .sidebar { width: var(--sidebar-width); background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-heading { padding: 20px 20px 10px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .step-list { list-style: none; padding: 0 12px 20px 12px; }
+    .step-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 6px; transition: all 0.2s; border: 1px solid transparent; }
+    .step-item:hover { background-color: var(--bg-card-hover); }
+    .step-item.active { background-color: var(--bg-card); border-color: var(--accent-blue); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); }
+    .step-number { width: 28px; height: 28px; border-radius: 50%; background-color: var(--border-color); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .step-item.active .step-number { background-color: var(--accent-blue); color: white; }
+    .step-item.completed .step-number { background-color: var(--accent-green); color: white; }
+    .step-info { display: flex; flex-direction: column; }
+    .step-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .step-duration { font-size: 11px; color: var(--text-muted); }
+
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 30px 40px 100px 40px; }
+    .content-panel { display: none; max-width: 960px; margin: 0 auto; width: 100%; }
+    .content-panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+    .subtitle { font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5; }
+
+    .callout { border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; border: 1px solid transparent; }
+    .callout-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .callout-content { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+    
+    .callout-purple { background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.25); }
+    .callout-purple .callout-title { color: var(--accent-purple); }
+    .callout-cyan { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.25); }
+    .callout-cyan .callout-title { color: var(--accent-cyan); }
+    .callout-amber { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); }
+    .callout-amber .callout-title { color: var(--accent-amber); }
+    .callout-green { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); }
+    .callout-green .callout-title { color: var(--accent-green); }
+
+    .os-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .os-tab-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+    .os-tab-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+
+    .os-content { display: none; }
+    .os-content.active { display: block; }
+
+    .code-block-container { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .code-header { background: var(--bg-card); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
+    .code-lang-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 0.5px; }
+    .copy-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+    .copy-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    pre.code-content { padding: 16px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.6; color: #e2e8f0; overflow-x: auto; white-space: pre-wrap; }
+
+    .task-checklist { list-style: none; margin-bottom: 24px; }
+    .task-checkbox-container { display: flex; align-items: flex-start; gap: 14px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 14px 18px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+    .task-checkbox-container:hover { background: var(--bg-card-hover); }
+    .task-checkbox-container.checked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+    .custom-checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: all 0.2s; }
+    .task-checkbox-container.checked .custom-checkbox { background: var(--accent-green); border-color: var(--accent-green); }
+    .check-mark { width: 14px; height: 14px; fill: white; display: none; }
+    .task-checkbox-container.checked .check-mark { display: block; }
+    .task-content { display: flex; flex-direction: column; gap: 2px; }
+    .task-label { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+    .task-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+
+    .quiz-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .quiz-question { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 14px; }
+    .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+    .quiz-option { padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+    .quiz-option:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    .quiz-option.correct { background: rgba(16, 185, 129, 0.15); border-color: var(--accent-green); color: var(--accent-green); font-weight: 600; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: var(--accent-red); color: var(--accent-red); }
+
+    .cert-canvas-container { display: flex; flex-direction: column; align-items: center; gap: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px; }
+    .cert-input { width: 100%; max-width: 400px; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; outline: none; text-align: center; }
+    canvas#certCanvas { max-width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+
+    footer.nav-bar {
+      position: fixed; bottom: 0; left: var(--sidebar-width); right: 0; height: 70px;
+      background: var(--bg-secondary); border-top: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 40px; z-index: 90;
+    }
+    .btn-nav { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-prev { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-prev:hover { background: var(--bg-card-hover); }
+    .btn-next { background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+    .btn-next:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">BQ</div>
+      <div>
+        <div class="brand-title">Lab 4: Enterprise BigQuery Integration & Data Agents</div>
+        <div class="brand-subtitle">Google ADK V2 • CME Internal Product Support Desk</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span class="progress-percent" id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Lab Modules</div>
+      <ul class="step-list" id="stepsList">
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">1</span>
+          <div class="step-info">
+            <span class="step-title">Overview & BigQuery Setup</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(1)">
+          <span class="step-number">2</span>
+          <div class="step-info">
+            <span class="step-title">Part 4.1: BigQuery Toolset Config</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(2)">
+          <span class="step-number">3</span>
+          <div class="step-info">
+            <span class="step-title">Part 4.2: BigQuery Multi-Agent Router</span>
+            <span class="step-duration">15 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(3)">
+          <span class="step-number">4</span>
+          <div class="step-info">
+            <span class="step-title">Knowledge Assessment</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(4)">
+          <span class="step-number">5</span>
+          <div class="step-info">
+            <span class="step-title">Completion Certificate</span>
+            <span class="step-duration">2 mins</span>
+          </div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Panel Area -->
+    <main class="content-area">
+
+      <!-- STEP 0: OVERVIEW & SETUP -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Lab 4: Enterprise BigQuery Integration & Data Agents (ADK V2)</h1>
+        <p class="subtitle">Connect Google ADK V2 agents directly to Google Cloud BigQuery datasets (<code>cme_support</code>) using built-in <code>BigQueryToolset</code> and read-only guardrails for the <b>CME Internal Product Support Desk</b>.</p>
+
+        <div class="callout callout-cyan">
+          <div class="callout-title">💡 Enterprise Data Integration with BigQuery</div>
+          <div class="callout-content">
+            This lab replaces simulated in-memory static dictionaries with live Google Cloud BigQuery database tables:<br>
+            • <b>Dataset:</b> <code>cme_support</code> (US Location)<br>
+            • <b>Tables:</b> <code>cme_support.products</code>, <code>cme_support.market_status</code><br>
+            • <b>Guardrails:</b> Read-only execution via <code>WriteMode.BLOCKED</code>.
+          </div>
+        </div>
+
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" onclick="switchOsTab('bash')">🐧 Linux / macOS / Bash</button>
+          <button class="os-tab-btn" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <div class="os-content active" data-os="bash">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Bash Setup & Auth Commands</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># 1. Export active GCP Project ID
+export PROJECT_ID=your_project_id
+
+# 2. Enable BigQuery API
+gcloud services enable bigquery.googleapis.com --project="$PROJECT_ID"
+
+# 3. Authenticate Google Application Default Credentials (ADC)
+gcloud auth application-default login
+
+# 4. Navigate to lab directory and run BigQuery setup script
+cd lab4_bigquery_agents
+chmod +x setup_bigquery.sh
+./setup_bigquery.sh</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell Setup & Auth Commands</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># 1. Export active GCP Project ID in PowerShell
+$env:PROJECT_ID = "your_project_id"
+
+# 2. Enable BigQuery API
+gcloud services enable bigquery.googleapis.com --project="$env:PROJECT_ID"
+
+# 3. Authenticate Google Application Default Credentials (ADC)
+gcloud auth application-default login
+
+# 4. Navigate to lab directory and execute setup_bigquery.sh via bash
+Set-Location lab4_bigquery_agents
+bash setup_bigquery.sh</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't0_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Run setup_bigquery.sh</span>
+              <span class="task-desc">Execute `setup_bigquery.sh` and verify dataset `cme_support` and tables (`products`, `market_status`) are created with MERGE data population.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 1: BIGQUERY TOOLSET CONFIG -->
+      <section class="content-panel" id="panel-1">
+        <h1>Part 4.1: ADK Built-in BigQuery Toolset Configuration</h1>
+        <p class="subtitle">Instantiate Google ADK's native <code>BigQueryToolset</code> with Application Default Credentials and read-only guardrail policies.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🛠️ ADK BigQueryToolset Architecture</div>
+          <div class="callout-content">
+            Instead of writing manual SQL wrapper functions, ADK provides <code>BigQueryToolset</code> equipped with <code>BigQueryCredentialsConfig</code> and <code>BigQueryToolConfig</code>. Setting <code>write_mode=WriteMode.BLOCKED</code> prevents LLM agents from mutating production tables.
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Python (agent.py)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>from google.adk.tools.bigquery import (
+    BigQueryCredentialsConfig,
+    BigQueryToolset,
+)
+from google.adk.tools.bigquery.config import (
+    BigQueryToolConfig,
+    WriteMode,
+)
+import google.auth
+
+# Enforce Read-Only Guardrails
+tool_config = BigQueryToolConfig(write_mode=WriteMode.BLOCKED)
+
+# Initialize Application Default Credentials (ADC)
+application_default_credentials, _ = google.auth.default()
+credentials_config = BigQueryCredentialsConfig(
+    credentials=application_default_credentials
+)
+
+# Instantiate ADK Built-in BigQuery Toolset
+bigquery_toolset = BigQueryToolset(
+    credentials_config=credentials_config,
+    bigquery_tool_config=tool_config,
+    tool_filter=[
+        "get_table_info",
+        "execute_sql",
+    ],
+)</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Inspect BigQueryToolset configuration</span>
+              <span class="task-desc">Verify `agent.py` and `agent_reference.py` instantiate `BigQueryToolset` with read-only policy (`WriteMode.BLOCKED`).</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 2: BIGQUERY MULTI-AGENT ROUTER -->
+      <section class="content-panel" id="panel-2">
+        <h1>Part 4.2: BigQuery Multi-Agent Support Router</h1>
+        <p class="subtitle">Deploy specialized support agents equipped with ADK BigQuery toolset to query live CME database tables.</p>
+
+        <div class="callout callout-amber">
+          <div class="callout-title">⚡ Dynamic BigQuery Multi-Agent Router</div>
+          <div class="callout-content">
+            The Request Classifier routes user queries to specialized agents: <b>Incident Support Specialist</b> (`cme_support.incidents`), <b>Market Status Specialist</b> (`cme_support.market_status`), or <b>Product Support Specialist</b> (`cme_support.products`).
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Launch ADK Web UI</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code># Run inside lab4_bigquery_agents directory
+adk web --port 8000 .</code></pre>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Prompt 1: Incident Support (BigQuery)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>Are there any reported incidents currently affecting NQ?</code></pre>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Prompt 2: Market Status Support (BigQuery)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>Is NQ currently trading, halted, or closed?</code></pre>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Prompt 3: Product Support (BigQuery)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>Tell me about the ES futures contract and its specifications</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't2_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Test part4_bigquery_support_routing in Web UI</span>
+              <span class="task-desc">Select `part4_bigquery_support_routing`, send test prompts, and verify live SQL execution against BigQuery tables.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 3: QUIZ -->
+      <section class="content-panel" id="panel-quiz">
+        <h1>Knowledge Assessment</h1>
+        <p class="subtitle">Test your understanding of Google ADK V2 BigQuery Toolset Integration & Guardrails.</p>
+
+        <div class="quiz-card">
+          <div class="quiz-question">1. What is the purpose of setting `write_mode=WriteMode.BLOCKED` in `BigQueryToolConfig`?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) It deletes the BigQuery dataset on agent shutdown</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) It enforces read-only guardrails preventing agents from executing DDL/DML data modifications</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) It blocks network requests to Google Cloud</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) It disables SQL query caching</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">2. Which Google ADK class manages authentication credentials for BigQuery tools?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) BigQueryAuthManager</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) BigQueryCredentialsConfig</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) GcpTokenManager</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) AdkOAuthHandler</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">3. How do specialist agents in ADK execute SQL queries against BigQuery tables?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) By hardcoding SQL strings in python functions</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) By equipping `BigQueryToolset` in `tools=[bigquery_toolset]`, allowing the LLM to inspect schema and generate SQL dynamically</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) By sending raw HTTP REST requests</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) By reading local CSV files</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 4: CERTIFICATE -->
+      <section class="content-panel" id="panel-cert">
+        <h1>Completion Certificate</h1>
+        <p class="subtitle">Congratulations on mastering Google ADK V2 BigQuery Enterprise Integration & Data Agents!</p>
+
+        <div class="cert-canvas-container">
+          <input type="text" id="studentNameInput" class="cert-input" placeholder="Enter Your Full Name" oninput="generateCertificate()">
+          <canvas id="certCanvas" width="800" height="500"></canvas>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Footer -->
+    <footer class="nav-bar">
+      <button class="btn-nav btn-prev" id="btnPrev" onclick="changeStep(-1)">← Previous</button>
+      <button class="btn-nav btn-next" id="btnNext" onclick="changeStep(1)">Next Step →</button>
+    </footer>
+
+  </div>
+
+  <script>
+    let currentStep = 0;
+    const totalSteps = 5;
+
+    function goToStep(index) {
+      if (index < 0 || index >= totalSteps) return;
+      
+      document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
+
+      currentStep = index;
+      
+      const targetPanel = document.getElementById(index === 3 ? 'panel-quiz' : (index === 4 ? 'panel-cert' : `panel-${index}`));
+      if (targetPanel) targetPanel.classList.add('active');
+
+      const stepItems = document.querySelectorAll('.step-item');
+      if (stepItems[index]) stepItems[index].classList.add('active');
+
+      document.getElementById('btnPrev').style.visibility = index === 0 ? 'hidden' : 'visible';
+      document.getElementById('btnNext').innerText = index === totalSteps - 1 ? 'Finish Lab' : 'Next Step →';
+
+      updateProgress();
+      if (index === 4) generateCertificate();
+    }
+
+    function changeStep(delta) {
+      goToStep(currentStep + delta);
+    }
+
+    function switchOsTab(os) {
+      document.querySelectorAll('.os-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.os-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelectorAll(`.os-tab-btn`).forEach(btn => {
+        if (btn.innerText.toLowerCase().includes(os)) btn.classList.add('active');
+      });
+
+      document.querySelectorAll(`.os-content[data-os="${os}"]`).forEach(c => c.classList.add('active'));
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', nextTheme);
+      document.getElementById('themeIcon').innerText = nextTheme === 'dark' ? '🌙' : '☀️';
+      if (currentStep === 4) generateCertificate();
+    }
+
+    function toggleTask(el, id) {
+      el.classList.toggle('checked');
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const totalTasks = document.querySelectorAll('.task-checkbox-container').length;
+      const checkedTasks = document.querySelectorAll('.task-checkbox-container.checked').length;
+      const percent = totalTasks === 0 ? 0 : Math.round((checkedTasks / totalTasks) * 100);
+      
+      document.getElementById('progressBar').style.width = percent + '%';
+      document.getElementById('progressPercent').innerText = percent + '%';
+    }
+
+    function copyCode(btn) {
+      const code = btn.parentElement.nextElementSibling.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        setTimeout(() => btn.innerText = orig, 1500);
+      });
+    }
+
+    function checkQuiz(el, isCorrect) {
+      const parent = el.parentElement;
+      parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct', 'incorrect'));
+      if (isCorrect) {
+        el.classList.add('correct');
+      } else {
+        el.classList.add('incorrect');
+      }
+    }
+
+    function generateCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const name = document.getElementById('studentNameInput').value.trim() || "CME Data & Support Engineer";
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Decorative Border
+      ctx.strokeStyle = "#3b82f6";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+      ctx.strokeStyle = "#a855f7";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(28, 28, canvas.width - 56, canvas.height - 56);
+
+      // Title
+      ctx.fillStyle = "#3b82f6";
+      ctx.font = "bold 26px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("CERTIFICATE OF COMPLETION", canvas.width / 2, 90);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "14px Inter, sans-serif";
+      ctx.fillText("PROUDLY PRESENTED TO", canvas.width / 2, 130);
+
+      // Student Name
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 32px Outfit, sans-serif";
+      ctx.fillText(name, canvas.width / 2, 190);
+
+      ctx.strokeStyle = "#334155";
+      ctx.beginPath();
+      ctx.moveTo(200, 210);
+      ctx.lineTo(600, 210);
+      ctx.stroke();
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "15px Inter, sans-serif";
+      ctx.fillText("For successfully completing hands-on training in", canvas.width / 2, 260);
+
+      ctx.fillStyle = "#a855f7";
+      ctx.font = "bold 20px Outfit, sans-serif";
+      ctx.fillText("Lab 4: Enterprise BigQuery Integration & Data Agents (ADK V2)", canvas.width / 2, 300);
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "13px Inter, sans-serif";
+      ctx.fillText("CME Support Desk • BigQueryToolset • Read-Only Guardrails • Multi-Agent SQL Routing", canvas.width / 2, 335);
+
+      // Date & Seal
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "12px Inter, sans-serif";
+      ctx.fillText(`Issued on ${today} • CME Group AI Training`, canvas.width / 2, 420);
+    }
+  </script>
+</body>
+</html>

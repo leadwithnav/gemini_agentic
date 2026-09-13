@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 5: Model Context Protocol (MCP) & REST API Integration | CME Support Desk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --bg-card: #19243b;
+      --bg-card-hover: #22304e;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --border-color: #263554;
+      --code-bg: #070a12;
+      --sidebar-width: 330px;
+      --header-height: 70px;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #9333ea;
+      --accent-blue: #2563eb;
+      --accent-green: #059669;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-cyan: #0891b2;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .navbar {
+      height: var(--header-height); background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color); display: flex; align-items: center;
+      justify-content: space-between; padding: 0 24px; z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-logo {
+      width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .brand-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 18px; color: var(--text-primary); }
+    .brand-subtitle { font-size: 12px; color: var(--text-secondary); }
+
+    .nav-actions { display: flex; align-items: center; gap: 20px; }
+    .progress-bar-container { width: 160px; height: 8px; background-color: var(--border-color); border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan)); transition: width 0.3s ease; }
+    .progress-percent { font-size: 13px; font-weight: 600; color: var(--accent-green); }
+    .theme-toggle {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary);
+      padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .theme-toggle:hover { background: var(--bg-card-hover); }
+
+    .main-wrapper { display: flex; flex: 1; height: calc(100vh - var(--header-height)); overflow: hidden; }
+
+    .sidebar { width: var(--sidebar-width); background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-heading { padding: 20px 20px 10px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .step-list { list-style: none; padding: 0 12px 20px 12px; }
+    .step-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 6px; transition: all 0.2s; border: 1px solid transparent; }
+    .step-item:hover { background-color: var(--bg-card-hover); }
+    .step-item.active { background-color: var(--bg-card); border-color: var(--accent-green); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); }
+    .step-number { width: 28px; height: 28px; border-radius: 50%; background-color: var(--border-color); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .step-item.active .step-number { background-color: var(--accent-green); color: white; }
+    .step-item.completed .step-number { background-color: var(--accent-cyan); color: white; }
+    .step-info { display: flex; flex-direction: column; }
+    .step-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .step-duration { font-size: 11px; color: var(--text-muted); }
+
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 30px 40px 100px 40px; }
+    .content-panel { display: none; max-width: 960px; margin: 0 auto; width: 100%; }
+    .content-panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+    h2 { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 600; color: var(--accent-cyan); margin: 24px 0 12px 0; }
+    .subtitle { font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5; }
+
+    .callout { border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; border: 1px solid transparent; }
+    .callout-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .callout-content { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+    
+    .callout-purple { background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.25); }
+    .callout-purple .callout-title { color: var(--accent-purple); }
+    .callout-cyan { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.25); }
+    .callout-cyan .callout-title { color: var(--accent-cyan); }
+    .callout-amber { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); }
+    .callout-amber .callout-title { color: var(--accent-amber); }
+    .callout-green { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); }
+    .callout-green .callout-title { color: var(--accent-green); }
+
+    .os-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .os-tab-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+    .os-tab-btn.active { background: var(--accent-green); color: white; border-color: var(--accent-green); }
+
+    .os-content { display: none; }
+    .os-content.active { display: block; }
+
+    .code-block-container { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .code-header { background: var(--bg-card); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
+    .code-lang-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 0.5px; }
+    .copy-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+    .copy-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    pre.code-content { padding: 16px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.6; color: #e2e8f0; overflow-x: auto; white-space: pre-wrap; }
+
+    .api-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; background: var(--bg-card); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color); }
+    .api-table th, .api-table td { padding: 12px 16px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border-color); }
+    .api-table th { background: var(--code-bg); color: var(--accent-cyan); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+    .api-table td code { font-family: 'Fira Code', monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; color: var(--accent-purple); font-size: 12px; }
+
+    .task-checklist { list-style: none; margin-bottom: 24px; }
+    .task-checkbox-container { display: flex; align-items: flex-start; gap: 14px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 14px 18px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+    .task-checkbox-container:hover { background: var(--bg-card-hover); }
+    .task-checkbox-container.checked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+    .custom-checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: all 0.2s; }
+    .task-checkbox-container.checked .custom-checkbox { background: var(--accent-green); border-color: var(--accent-green); }
+    .check-mark { width: 14px; height: 14px; fill: white; display: none; }
+    .task-checkbox-container.checked .check-mark { display: block; }
+    .task-content { display: flex; flex-direction: column; gap: 2px; }
+    .task-label { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+    .task-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+
+    .quiz-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .quiz-question { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 14px; }
+    .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+    .quiz-option { padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+    .quiz-option:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    .quiz-option.correct { background: rgba(16, 185, 129, 0.15); border-color: var(--accent-green); color: var(--accent-green); font-weight: 600; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: var(--accent-red); color: var(--accent-red); }
+
+    .cert-canvas-container { display: flex; flex-direction: column; align-items: center; gap: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px; }
+    .cert-input { width: 100%; max-width: 400px; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; outline: none; text-align: center; }
+    canvas#certCanvas { max-width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+
+    footer.nav-bar {
+      position: fixed; bottom: 0; left: var(--sidebar-width); right: 0; height: 70px;
+      background: var(--bg-secondary); border-top: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 40px; z-index: 90;
+    }
+    .btn-nav { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-prev { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-prev:hover { background: var(--bg-card-hover); }
+    .btn-next { background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan)); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    .btn-next:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">MCP</div>
+      <div>
+        <div class="brand-title">Lab 5: Model Context Protocol (MCP) & REST API Integration</div>
+        <div class="brand-subtitle">Google ADK V2 • CME Internal Support Desk</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span class="progress-percent" id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Lab Modules</div>
+      <ul class="step-list" id="stepsList">
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">1</span>
+          <div class="step-info">
+            <span class="step-title">Overview & Environment Setup</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(1)">
+          <span class="step-number">2</span>
+          <div class="step-info">
+            <span class="step-title">Part 5.1 & 5.2: REST API & MCP Integration</span>
+            <span class="step-duration">20 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(2)">
+          <span class="step-number">3</span>
+          <div class="step-info">
+            <span class="step-title">Knowledge Assessment</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(3)">
+          <span class="step-number">4</span>
+          <div class="step-info">
+            <span class="step-title">Completion Certificate</span>
+            <span class="step-duration">2 mins</span>
+          </div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Panel Area -->
+    <main class="content-area">
+
+      <!-- STEP 0: OVERVIEW & SETUP -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Lab 5: Model Context Protocol (MCP) & REST API Integration</h1>
+        <p class="subtitle">Build an independent <b>CME Incident Management REST API</b> (FastAPI) and wrap it inside a <b>Model Context Protocol (MCP) Server</b> using Streamable HTTP to serve ADK agents.</p>
+
+        <div class="callout callout-green">
+          <div class="callout-title">💡 System Architecture Flow</div>
+          <div class="callout-content">
+            <pre style="font-family: 'Fira Code', monospace; font-size: 12px; color: var(--accent-cyan); background: transparent; border: none; padding: 0;">
+ADK Agent / Inspector ──(MCP Protocol)──> CME Incident MCP Server (Port 8002) ──(HTTP)──> Incident REST API (Port 8001)
+            </pre>
+          </div>
+        </div>
+
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" onclick="switchOsTab('bash')">🐧 Linux / macOS / Bash</button>
+          <button class="os-tab-btn" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <div class="os-content active" data-os="bash">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Terminal Commands - Setup & Services</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># 1. Install dependencies
+pip install -r lab5_mcp_agents/requirements.txt
+
+# 2. Terminal 1: Launch FastAPI REST API on port 8001
+python -m uvicorn lab5_mcp_agents.incident_api.app:app --host 127.0.0.1 --port 8001
+
+# 3. Terminal 2: Launch CME Incident MCP Server on port 8002
+python lab5_mcp_agents/incident_mcp/server.py
+
+# 4. Terminal 3: Test ADK Agent or Web UI
+adk web --port 8000 lab5_mcp_agents</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell Commands - Setup & Services</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># 1. Install dependencies
+pip install -r lab5_mcp_agents/requirements.txt
+
+# 2. Terminal 1: Launch FastAPI REST API on port 8001
+python -m uvicorn lab5_mcp_agents.incident_api.app:app --host 127.0.0.1 --port 8001
+
+# 3. Terminal 2: Launch CME Incident MCP Server on port 8002
+python lab5_mcp_agents/incident_mcp/server.py
+
+# 4. Terminal 3: Test ADK Agent or Web UI
+adk web --port 8000 lab5_mcp_agents</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't0_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Launch REST API and MCP Server</span>
+              <span class="task-desc">Verify REST API is live on port 8001 and MCP Server is live on Streamable HTTP endpoint `http://127.0.0.1:8002/mcp`.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 1: API & MCP IMPLEMENTATION & VERIFICATION -->
+      <section class="content-panel" id="panel-1">
+        <h1>Part 5.1 & 5.2: REST API & MCP Server Integration</h1>
+        <p class="subtitle">Build the FastAPI REST API, expose it as business tools via Python FastMCP Server, configure Google ADK's <code>McpToolset</code>, and test agent execution.</p>
+
+        <h2>Part 5.1: CME Incident Management REST API</h2>
+        <div class="callout callout-cyan">
+          <div class="callout-title">📋 REST API Endpoints (Port 8001)</div>
+          <div class="callout-content">
+            Underlying REST microservice routes serving incident data:
+          </div>
+        </div>
+
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>HTTP Method</th>
+              <th>Endpoint Route</th>
+              <th>Query / Path Params</th>
+              <th>Description & Status Code</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code style="color: var(--accent-green);">GET</code></td>
+              <td><code>/health</code></td>
+              <td>None</td>
+              <td>Returns <code>{"status": "UP"}</code> (HTTP 200)</td>
+            </tr>
+            <tr>
+              <td><code style="color: var(--accent-green);">GET</code></td>
+              <td><code>/incidents</code></td>
+              <td>None</td>
+              <td>Returns all support incidents (HTTP 200)</td>
+            </tr>
+            <tr>
+              <td><code style="color: var(--accent-green);">GET</code></td>
+              <td><code>/incidents?symbol=NQ</code></td>
+              <td><code>symbol</code> (str)</td>
+              <td>Filters incidents by normalized product symbol (HTTP 200)</td>
+            </tr>
+            <tr>
+              <td><code style="color: var(--accent-green);">GET</code></td>
+              <td><code>/incidents/{incident_id}</code></td>
+              <td><code>incident_id</code> (str)</td>
+              <td>Returns metadata for specific incident or HTTP 404 Not Found</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Part 5.2: CME Incident MCP Server (Port 8002)</h2>
+        <div class="callout callout-purple">
+          <div class="callout-title">🛠️ Exposed MCP Tools</div>
+          <div class="callout-content">
+            The MCP server wraps REST API calls into clean, business-level LLM tools:
+            <ul style="margin-left: 20px; margin-top: 6px;">
+              <li><code>get_incident_by_id(incident_id: str)</code> → calls <code>GET http://127.0.0.1:8001/incidents/{incident_id}</code></li>
+              <li><code>get_incidents_by_symbol(symbol: str)</code> → calls <code>GET http://127.0.0.1:8001/incidents?symbol={symbol}</code></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">MCP Server Implementation (incident_mcp/server.py)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>import httpx
+from mcp.server.fastmcp import FastMCP
+
+REST_API_BASE_URL = "http://127.0.0.1:8001"
+HTTP_TIMEOUT = 5.0
+
+mcp = FastMCP("CME Incident Management MCP Server", host="127.0.0.1", port=8002, streamable_http_path="/mcp")
+
+@mcp.tool()
+def get_incident_by_id(incident_id: str) -> dict:
+    """Retrieve details for a specific CME incident by its unique ID (e.g., 'INC-101')."""
+    normalized_id = incident_id.strip().upper()
+    print(f"[MCP] get_incident_by_id called incident_id={normalized_id}", flush=True)
+    try:
+        with httpx.Client(timeout=HTTP_TIMEOUT) as client:
+            resp = client.get(f"{REST_API_BASE_URL}/incidents/{normalized_id}")
+            if resp.status_code == 200: return resp.json()
+            if resp.status_code == 404: return {"found": False, "error": f"Incident '{normalized_id}' not found"}
+            return {"found": False, "error": "Incident service unavailable"}
+    except Exception:
+        return {"found": False, "error": "Incident service unavailable"}
+
+@mcp.tool()
+def get_incidents_by_symbol(symbol: str) -> dict:
+    """Retrieve all CME incidents associated with a specific trading product symbol (e.g., 'NQ', 'ES')."""
+    normalized_symbol = symbol.strip().upper()
+    print(f"[MCP] get_incidents_by_symbol called symbol={normalized_symbol}", flush=True)
+    try:
+        with httpx.Client(timeout=HTTP_TIMEOUT) as client:
+            resp = client.get(f"{REST_API_BASE_URL}/incidents", params={"symbol": normalized_symbol})
+            if resp.status_code == 200: return resp.json()
+            if resp.status_code == 404: return {"found": False, "error": f"No incidents found for symbol '{normalized_symbol}'"}
+            return {"found": False, "error": "Incident service unavailable"}
+    except Exception:
+        return {"found": False, "error": "Incident service unavailable"}
+
+if __name__ == "__main__":
+    mcp.run(transport="streamable-http")</code></pre>
+        </div>
+
+        <h2>Google ADK McpToolset Configuration (tools.py)</h2>
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">ADK McpToolset Definition (lab5_mcp_agents/tools.py)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
+
+# Connect ADK agents to the Streamable HTTP MCP Server
+mcp_connection_params = StreamableHTTPConnectionParams(
+    url="http://127.0.0.1:8002/mcp"
+)
+
+# Instantiate ADK McpToolset
+incident_mcp_toolset = McpToolset(
+    connection_params=mcp_connection_params
+)</code></pre>
+        </div>
+
+        <div class="callout callout-amber">
+          <div class="callout-title">🧪 Sample Test Prompts for ADK Agent / Web UI</div>
+          <div class="callout-content">
+            Test the integrated agent using <code>adk web --port 8000 lab5_mcp_agents</code> or ADK CLI:
+            <ul style="margin-left: 20px; margin-top: 6px;">
+              <li><code>"What is the status of incident INC-101?"</code> → Agent executes <code>get_incident_by_id("INC-101")</code></li>
+              <li><code>"Are there any active support incidents affecting NQ futures?"</code> → Agent executes <code>get_incidents_by_symbol("NQ")</code></li>
+              <li><code>"Look up incident INC-999"</code> → Agent handles 404 gracefully</li>
+              <li><code>[Fault Injection] Stop port 8001 REST API and test INC-101</code> → Agent reports <code>Incident service unavailable</code> safely</li>
+            </ul>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Test MCP Server Discovery & ADK Tool Execution</span>
+              <span class="task-desc">Verify tool discovery (`get_incident_by_id`, `get_incidents_by_symbol`), test prompts, and confirm clean error handling when REST API is stopped.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 2: QUIZ -->
+      <section class="content-panel" id="panel-quiz">
+        <h1>Knowledge Assessment</h1>
+        <p class="subtitle">Test your understanding of Model Context Protocol (MCP), Streamable HTTP transport, and ADK toolset integration.</p>
+
+        <div class="quiz-card">
+          <div class="quiz-question">1. Which transport protocol is used to run the CME Incident MCP Server on port 8002?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) Stdio transport (stdin/stdout)</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) Streamable HTTP transport (`/mcp`)</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) gRPC binary stream</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) WebSockets endpoint</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">2. How does Google ADK connect to the remote Streamable HTTP MCP Server?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) Using raw curl shell execution</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) Using `McpToolset` with `StreamableHTTPConnectionParams(url="http://127.0.0.1:8002/mcp")`</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) Using BigQueryToolset credentials</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) Hardcoding REST URLs inside the prompt</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">3. What does the MCP Server return when the underlying REST API service on port 8001 is unavailable or timed out?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) Raw Python exception traceback</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) A controlled dictionary `{"found": False, "error": "Incident service unavailable"}`</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) A crash and server exit code 1</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) Null output</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 3: CERTIFICATE -->
+      <section class="content-panel" id="panel-cert">
+        <h1>Completion Certificate</h1>
+        <p class="subtitle">Congratulations on building and integrating the CME Incident Management MCP Server with Google ADK V2!</p>
+
+        <div class="cert-canvas-container">
+          <input type="text" id="studentNameInput" class="cert-input" placeholder="Enter Your Full Name" oninput="generateCertificate()">
+          <canvas id="certCanvas" width="800" height="500"></canvas>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Footer -->
+    <footer class="nav-bar">
+      <button class="btn-nav btn-prev" id="btnPrev" onclick="changeStep(-1)">← Previous</button>
+      <button class="btn-nav btn-next" id="btnNext" onclick="changeStep(1)">Next Step →</button>
+    </footer>
+
+  </div>
+
+  <script>
+    let currentStep = 0;
+    const totalSteps = 4;
+
+    function goToStep(index) {
+      if (index < 0 || index >= totalSteps) return;
+      
+      document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
+
+      currentStep = index;
+      
+      const targetPanel = document.getElementById(index === 2 ? 'panel-quiz' : (index === 3 ? 'panel-cert' : `panel-${index}`));
+      if (targetPanel) targetPanel.classList.add('active');
+
+      const stepItems = document.querySelectorAll('.step-item');
+      if (stepItems[index]) stepItems[index].classList.add('active');
+
+      document.getElementById('btnPrev').style.visibility = index === 0 ? 'hidden' : 'visible';
+      document.getElementById('btnNext').innerText = index === totalSteps - 1 ? 'Finish Lab' : 'Next Step →';
+
+      updateProgress();
+      if (index === 3) generateCertificate();
+    }
+
+    function changeStep(delta) {
+      goToStep(currentStep + delta);
+    }
+
+    function switchOsTab(os) {
+      document.querySelectorAll('.os-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.os-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelectorAll(`.os-tab-btn`).forEach(btn => {
+        if (btn.innerText.toLowerCase().includes(os)) btn.classList.add('active');
+      });
+
+      document.querySelectorAll(`.os-content[data-os="${os}"]`).forEach(c => c.classList.add('active'));
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', nextTheme);
+      document.getElementById('themeIcon').innerText = nextTheme === 'dark' ? '🌙' : '☀️';
+      if (currentStep === 3) generateCertificate();
+    }
+
+    function toggleTask(el, id) {
+      el.classList.toggle('checked');
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const totalTasks = document.querySelectorAll('.task-checkbox-container').length;
+      const checkedTasks = document.querySelectorAll('.task-checkbox-container.checked').length;
+      const percent = totalTasks === 0 ? 0 : Math.round((checkedTasks / totalTasks) * 100);
+      
+      document.getElementById('progressBar').style.width = percent + '%';
+      document.getElementById('progressPercent').innerText = percent + '%';
+    }
+
+    function copyCode(btn) {
+      const code = btn.parentElement.nextElementSibling.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        setTimeout(() => btn.innerText = orig, 1500);
+      });
+    }
+
+    function checkQuiz(el, isCorrect) {
+      const parent = el.parentElement;
+      parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct', 'incorrect'));
+      if (isCorrect) {
+        el.classList.add('correct');
+      } else {
+        el.classList.add('incorrect');
+      }
+    }
+
+    function generateCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const name = document.getElementById('studentNameInput').value.trim() || "CME AI & MCP Engineer";
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Decorative Border
+      ctx.strokeStyle = "#10b981";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+      ctx.strokeStyle = "#06b6d4";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(28, 28, canvas.width - 56, canvas.height - 56);
+
+      // Title
+      ctx.fillStyle = "#10b981";
+      ctx.font = "bold 26px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("CERTIFICATE OF COMPLETION", canvas.width / 2, 90);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "14px Inter, sans-serif";
+      ctx.fillText("PROUDLY PRESENTED TO", canvas.width / 2, 130);
+
+      // Student Name
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 32px Outfit, sans-serif";
+      ctx.fillText(name, canvas.width / 2, 190);
+
+      ctx.strokeStyle = "#334155";
+      ctx.beginPath();
+      ctx.moveTo(200, 210);
+      ctx.lineTo(600, 210);
+      ctx.stroke();
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "15px Inter, sans-serif";
+      ctx.fillText("For successfully completing hands-on training in", canvas.width / 2, 260);
+
+      ctx.fillStyle = "#06b6d4";
+      ctx.font = "bold 20px Outfit, sans-serif";
+      ctx.fillText("Lab 5: Model Context Protocol (MCP) & REST API Integration", canvas.width / 2, 300);
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "13px Inter, sans-serif";
+      ctx.fillText("CME Support Desk • FastAPI • FastMCP • Streamable HTTP • ADK McpToolset • Enterprise Resiliency", canvas.width / 2, 335);
+
+      // Date & Seal
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "12px Inter, sans-serif";
+      ctx.fillText(`Issued on ${today} • CME Group AI Training`, canvas.width / 2, 420);
+    }
+  </script>
+</body>
+</html>
