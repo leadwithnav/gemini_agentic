@@ -3,7 +3,7 @@ Read-Only Market Data Tools for CME Product Support Agent (Lab 1).
 
 Design Principles:
 - One clear business capability per tool.
-- Minimal overlap between tools.
+- Minimal overlap between tools (get_product_details and get_market_status).
 - Explicit guidance for when a tool SHOULD and SHOULD NOT be used.
 - Full type annotations and clear docstrings for LLM tool selection.
 - Structured responses for predictable model interpretation.
@@ -26,11 +26,6 @@ def get_product_details(symbol: str) -> dict:
     - currency
     - product description
     - general information about a specific product symbol
-
-    Do NOT use this tool to determine whether a market is currently
-    OPEN or CLOSED.
-
-    For current simulated market/trading status, use get_market_status.
 
     Args:
         symbol:
@@ -86,9 +81,6 @@ def get_market_status(symbol: str) -> dict:
 
     Do NOT call this tool for general product-information questions.
 
-    For product name, exchange, contract size, currency, asset class,
-    or description, use get_product_details instead.
-
     Args:
         symbol:
             CME futures product ticker symbol.
@@ -122,62 +114,3 @@ def get_market_status(symbol: str) -> dict:
         "status": product["trading_status"],
         "is_simulated_data": True,
     }
-
-
-def list_products_by_asset_class(asset_class: str) -> list:
-    """
-    List simulated CME futures products belonging to a requested asset class.
-
-    Use this tool ONLY when the user asks for products within an asset class.
-
-    Example requests:
-    - "Which Energy products are available?"
-    - "Show me Metals products."
-    - "List Equity Index futures."
-    - "What FX products are available?"
-
-    Do NOT use this tool when the user is asking about one specific
-    product symbol such as ES, CL, GC, or NQ.
-
-    Args:
-        asset_class:
-            Asset class name.
-
-            Supported examples:
-            - Equity Index
-            - Energy
-            - Metals
-            - FX
-            - Agriculture
-
-    Returns:
-        A list of matching simulated product records.
-
-        Returns an empty list when no matching asset class is found.
-    """
-
-    clean_asset_class = asset_class.strip().lower()
-
-    matching_products = []
-
-    for product in PRODUCTS.values():
-        product_asset_class = product["asset_class"].strip().lower()
-
-        if (
-            product_asset_class == clean_asset_class
-            or clean_asset_class in product_asset_class
-        ):
-            matching_products.append(
-                {
-                    "symbol": product["symbol"],
-                    "name": product["name"],
-                    "asset_class": product["asset_class"],
-                    "exchange": product["exchange"],
-                    "contract_size": product["contract_size"],
-                    "currency": product["currency"],
-                    "description": product["description"],
-                    "is_simulated_data": True,
-                }
-            )
-
-    return matching_products

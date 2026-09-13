@@ -4,14 +4,13 @@ CME Market Product Support Agent (Lab 1A Instructor Demo)
 Defines the Google ADK root agent configuration:
 - Gemini Flash Model selection justification
 - Enterprise System Instructions & persona definition
-- Tool bindings: get_product_details, get_market_status, list_products_by_asset_class
+- Tool bindings: get_product_details, get_market_status
 """
 
 from google.adk.agents import Agent
 from .tools import (
     get_product_details,
     get_market_status,
-    list_products_by_asset_class,
 )
 
 MODEL_NAME = "gemini-3.6-flash"
@@ -26,13 +25,12 @@ RESPONSIBILITIES:
 - Identify the asset class of a product (e.g., Equity Index, Energy, Metals, FX, Agriculture).
 - Retrieve contract size, currency, and exchange metadata.
 - Retrieve simulated market trading status (OPEN or CLOSED).
-- List products belonging to a requested asset class.
 
 TOOL POLICY:
 - Always use available tools whenever factual product information or market status is required.
 - Do not invent, guess, or hallucinate product details or market statuses.
 - Rely strictly on tool execution results for factual answers.
-- If a product or asset class cannot be found, clearly state what was returned by the tool.
+- If a product cannot be found, clearly state what was returned by the tool.
 
 SAFETY & BOUNDARIES:
 - You are a strictly READ-ONLY informational agent.
@@ -56,6 +54,5 @@ root_agent = Agent(
     tools=[
         get_product_details,
         get_market_status,
-        list_products_by_asset_class,
     ],
 )
