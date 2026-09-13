@@ -8,3 +8,5 @@ __pycache__/
 credentials.json
 client_secret*.json
 application_default_credentials.json
+.venv/
+*/.venv/
