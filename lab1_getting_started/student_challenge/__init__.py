@@ -1,12 +1,9 @@
 """
-Student Challenge 1B Package: Fix the Product Support Agent
+CME Market Operations Agent Package (Lab 1)
 
-Contains:
-- starter_agent.py: Flawed starter agent with 4 imperfect tools & weak instructions (For Student Refactoring)
-- solution_agent.py: Reference solution meeting all 4 test criteria and safety guardrails
+This package defines the root agent and tools for inspecting simulated CME futures products.
 """
 
-from .starter_agent import starter_agent
-from .solution_agent import solution_agent
+from .agent import root_agent
 
-__all__ = ["starter_agent", "solution_agent"]
+__all__ = ["root_agent"]
