@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 3 Challenge 3: Collaborative Multi-Agent Exchange Assistant (ADK V2)</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --bg-card: #19243b;
+      --bg-card-hover: #22304e;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-purple-light: #c084fc;
+      --accent-blue: #3b82f6;
+      --accent-blue-light: #60a5fa;
+      --accent-green: #10b981;
+      --accent-green-light: #34d399;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --border-color: #263554;
+      --code-bg: #070a12;
+      --sidebar-width: 320px;
+      --header-height: 70px;
+      --footer-height: 65px;
+      --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.25);
+      --shadow-glow: 0 0 25px rgba(168, 85, 247, 0.2);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #9333ea;
+      --accent-purple-light: #a855f7;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #3b82f6;
+      --accent-green: #059669;
+      --accent-green-light: #10b981;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-cyan: #0891b2;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+      --shadow-subtle: 0 4px 15px rgba(0, 0, 0, 0.08);
+      --shadow-glow: 0 0 20px rgba(147, 51, 234, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .navbar {
+      height: var(--header-height);
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent-green), var(--accent-purple));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #ffffff; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .brand-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.15rem; color: var(--text-primary); }
+    .brand-subtitle { font-size: 0.75rem; color: var(--text-secondary); }
+
+    .nav-actions { display: flex; align-items: center; gap: 1.25rem; }
+    .progress-bar-container { width: 140px; height: 8px; background-color: var(--border-color); border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-green), var(--accent-purple)); transition: width 0.3s ease; }
+    .progress-percent { font-size: 0.8rem; font-weight: 600; color: var(--accent-green-light); }
+    .theme-toggle {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 500;
+      display: flex; align-items: center; gap: 6px; transition: var(--transition-smooth);
+    }
+    .theme-toggle:hover { background: var(--bg-card-hover); }
+
+    .main-wrapper { display: flex; flex: 1; margin-top: var(--header-height); height: calc(100vh - var(--header-height)); overflow: hidden; }
+    .sidebar { width: var(--sidebar-width); background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-heading { padding: 1.25rem 1.25rem 0.5rem 1.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .step-list { list-style: none; padding: 0 0.75rem 1.25rem 0.75rem; }
+    .step-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.85rem; border-radius: 10px; cursor: pointer; margin-bottom: 0.35rem; transition: var(--transition-smooth); border: 1px solid transparent; }
+    .step-item:hover { background-color: var(--bg-card-hover); }
+    .step-item.active { background-color: var(--bg-card); border-color: var(--accent-purple); box-shadow: var(--shadow-glow); }
+    .step-number { width: 26px; height: 26px; border-radius: 50%; background-color: var(--border-color); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+    .step-item.active .step-number { background-color: var(--accent-purple); color: white; }
+    .step-item.completed .step-number { background-color: var(--accent-green); color: white; }
+    .step-info { display: flex; flex-direction: column; }
+    .step-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+    .step-duration { font-size: 0.7rem; color: var(--text-muted); }
+
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 2rem 2.5rem 6rem 2.5rem; }
+    .content-panel { display: none; max-width: 960px; margin: 0 auto; width: 100%; }
+    .content-panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 { font-family: 'Outfit', sans-serif; font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .subtitle { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5; }
+
+    .callout { border-radius: 12px; padding: 1.15rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid transparent; }
+    .callout-title { font-weight: 700; font-size: 0.88rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
+    .callout-content { font-size: 0.83rem; color: var(--text-secondary); line-height: 1.6; }
+    .callout-purple { background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.25); }
+    .callout-purple .callout-title { color: var(--accent-purple-light); }
+    .callout-cyan { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.25); }
+    .callout-cyan .callout-title { color: var(--accent-cyan); }
+    .callout-amber { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); }
+    .callout-amber .callout-title { color: var(--accent-amber); }
+    .callout-green { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); }
+    .callout-green .callout-title { color: var(--accent-green-light); }
+
+    .os-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .os-tab-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: var(--transition-smooth); }
+    .os-tab-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+    .os-content { display: none; }
+    .os-content.active { display: block; }
+
+    .code-block-container { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+    .code-header { background: var(--bg-card); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
+    .code-lang-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--accent-purple-light); letter-spacing: 0.5px; }
+    .copy-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; transition: var(--transition-smooth); }
+    .copy-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    pre.code-content { padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; color: #e2e8f0; overflow-x: auto; white-space: pre-wrap; }
+
+    .task-checklist { list-style: none; margin-bottom: 1.5rem; }
+    .task-checkbox-container { display: flex; align-items: flex-start; gap: 12px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: var(--transition-smooth); }
+    .task-checkbox-container:hover { background: var(--bg-card-hover); }
+    .task-checkbox-container.checked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+    .custom-checkbox { width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: var(--transition-smooth); }
+    .task-checkbox-container.checked .custom-checkbox { background: var(--accent-green); border-color: var(--accent-green); }
+    .check-mark { width: 12px; height: 12px; fill: white; display: none; }
+    .task-checkbox-container.checked .check-mark { display: block; }
+    .task-content { display: flex; flex-direction: column; gap: 2px; }
+    .task-label { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+    .task-desc { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }
+
+    .quiz-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .quiz-question { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); margin-bottom: 14px; }
+    .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+    .quiz-option { padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; transition: var(--transition-smooth); }
+    .quiz-option:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    .quiz-option.correct { background: rgba(16, 185, 129, 0.15); border-color: var(--accent-green); color: var(--accent-green-light); font-weight: 600; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: var(--accent-red); color: var(--accent-red); }
+
+    .cert-canvas-container { display: flex; flex-direction: column; align-items: center; gap: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px; }
+    .cert-input { width: 100%; max-width: 400px; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 0.9rem; outline: none; text-align: center; }
+    canvas#certCanvas { max-width: 100%; border-radius: 12px; box-shadow: var(--shadow-subtle); }
+
+    footer.nav-bar {
+      position: fixed; bottom: 0; left: var(--sidebar-width); right: 0; height: var(--footer-height);
+      background: var(--bg-secondary); border-top: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 40px; z-index: 90;
+    }
+    .btn-nav { padding: 10px 20px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: var(--transition-smooth); }
+    .btn-prev { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-prev:hover { background: var(--bg-card-hover); }
+    .btn-next { background: linear-gradient(135deg, var(--accent-purple), var(--accent-green)); color: white; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); }
+    .btn-next:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">C3</div>
+      <div>
+        <div class="brand-title">Lab 3 Challenge 3: Collaborative Multi-Agent Exchange Assistant</div>
+        <div class="brand-subtitle">Google ADK V2 • Supervisor & Specialist Swarm Delegation</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span class="progress-percent" id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Challenge Tasks</div>
+      <ul class="step-list" id="stepsList">
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">1</span>
+          <div class="step-info">
+            <span class="step-title">Overview & Collaboration</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(1)">
+          <span class="step-number">2</span>
+          <div class="step-info">
+            <span class="step-title">Step 1: Specialist Peer Agents</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(2)">
+          <span class="step-number">3</span>
+          <div class="step-info">
+            <span class="step-title">Step 2: Supervisor Delegation</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(3)">
+          <span class="step-number">4</span>
+          <div class="step-info">
+            <span class="step-title">Step 3: Register sub_agents</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(4)">
+          <span class="step-number">5</span>
+          <div class="step-info">
+            <span class="step-title">Step 4: ADK UI Verification</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(5)">
+          <span class="step-number">6</span>
+          <div class="step-info">
+            <span class="step-title">Challenge Knowledge Quiz</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(6)">
+          <span class="step-number">7</span>
+          <div class="step-info">
+            <span class="step-title">Completion Certificate</span>
+            <span class="step-duration">2 mins</span>
+          </div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+
+      <!-- STEP 0: OVERVIEW & ARCHITECTURE -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Collaborative Multi-Agent Exchange Assistant</h1>
+        <p class="subtitle">Understand how a supervisor agent collaborates with specialized peer agents to solve complex user inquiries.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🤝 Collaborative Swarm Pattern</div>
+          <div class="callout-content">
+            Instead of hardcoded Python workflow loops or single-agent tool dispatching, a <b>Supervisor Agent</b> understands user intent, delegates work to specialized sub-agents, reasons across their findings, and outputs a consolidated final response.
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Swarm Delegation Architecture</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>Example Request: "Tell me about NYMEX and also list the products available on it."
+
+                    Supervisor (root_agent)
+                   /                      \
+                  /                        \
+      Exchange Info Agent            Product List Agent
+      (get_exchange_details)         (list_products_by_exchange)
+                  \                        /
+                   \                      /
+                    Supervisor (root_agent)
+                               │
+                               ▼
+                        Final Response</code></pre>
+        </div>
+
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Bash Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Navigate to student_challenge3 and launch ADK Web UI
+cd lab3_multi_agents/student_challenge3
+adk web --port 8000 .</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Navigate to student_challenge3 and launch ADK Web UI
+Set-Location lab3_multi_agents/student_challenge3
+adk web --port 8000 .</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't0_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Locate student_challenge3/agent.py</span>
+              <span class="task-desc">Open `lab3_multi_agents/student_challenge3/agent.py` in your code editor.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 1: SPECIALIST AGENTS -->
+      <section class="content-panel" id="panel-1">
+        <h1>Step 1: Review Specialist Peer Agents</h1>
+        <p class="subtitle">Understand single-turn specialist agent contracts and focused tool assignments.</p>
+
+        <div class="callout callout-green">
+          <div class="callout-title">🎯 Specialist Peer Contracts</div>
+          <div class="callout-content">
+            • <b>exchange_info_agent</b>: Focuses ONLY on exchange details (name, location, description) using <code>get_exchange_details</code>.<br>
+            • <b>product_list_agent</b>: Focuses ONLY on product symbol catalog using <code>list_products_by_exchange</code>.
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Specialist Agent Definitions (agent.py)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>exchange_info_agent = Agent(
+    name="exchange_info_agent",
+    model=MODEL_NAME,
+    description="Provides general information about CME Group exchanges.",
+    instruction="""Identify exchange code, call get_exchange_details, return EXCHANGE FINDINGS.""",
+    tools=[get_exchange_details],
+)
+
+product_list_agent = Agent(
+    name="product_list_agent",
+    model=MODEL_NAME,
+    description="Finds product symbols associated with a CME Group exchange.",
+    instruction="""Identify exchange code, call list_products_by_exchange, return PRODUCT FINDINGS.""",
+    tools=[list_products_by_exchange],
+)</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Inspect Specialist Descriptions</span>
+              <span class="task-desc">Verify that both specialists include clear `description` fields so the supervisor knows when to delegate to them.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 2: SUPERVISOR DELEGATION -->
+      <section class="content-panel" id="panel-2">
+        <h1>Step 2: Supervisor Delegation Rules</h1>
+        <p class="subtitle">Understand how the supervisor agent routes sub-tasks to specialists.</p>
+
+        <div class="callout callout-amber">
+          <div class="callout-title">👑 Supervisor Instructions & Delegation</div>
+          <div class="callout-content">
+            The supervisor LLM inspects user requests against the `description` and `instruction` of all registered `sub_agents`. When a query requires multiple capabilities, it delegates to specialists in sequence or parallel and synthesizes the final response.
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Supervisor Collaboration Instructions</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>root_agent = Agent(
+    name="collaborative_exchange_assistant",
+    model=MODEL_NAME,
+    instruction="""You are the CME Exchange Support Supervisor.
+COLLABORATION RULES:
+- Delegate exchange-information work to exchange_info_agent.
+- Delegate product-list work to product_list_agent.
+- If the request requires BOTH types of information, collaborate with BOTH specialists.
+- After receiving specialist findings, return one concise consolidated response.""",
+    sub_agents=[...],
+)</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't2_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Review Collaboration Rules</span>
+              <span class="task-desc">Understand how the supervisor delegates sub-tasks without calling raw tools directly.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 3: REGISTER SUB_AGENTS -->
+      <section class="content-panel" id="panel-3">
+        <h1>Step 3: Register sub_agents in root_agent</h1>
+        <p class="subtitle">Complete the <code>sub_agents</code> array configuration inside <code>root_agent</code>.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🛠️ Student Task: Register Specialists</div>
+          <div class="callout-content">
+            In <code>lab3_multi_agents/student_challenge3/agent.py</code>, populate <code>sub_agents=[...]</code> inside <code>root_agent</code> with the appropriate specialist agents so the supervisor can delegate queries.
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Student Challenge Task (agent.py)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code># TODO: Complete the agent collaboration configuration by registering sub_agents
+root_agent = Agent(
+    name="collaborative_exchange_assistant",
+    model=MODEL_NAME,
+    instruction="""...""",
+    
+    sub_agents=[
+        # TODO 1: Add the exchange information specialist
+        # ???,
+
+        # TODO 2: Add the product list specialist
+        # ???,
+    ],
+)</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't3_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Register sub_agents in agent.py</span>
+              <span class="task-desc">Add `exchange_info_agent` and `product_list_agent` inside `sub_agents=[...]` in `root_agent`.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 4: ADK UI VERIFICATION -->
+      <section class="content-panel" id="panel-4">
+        <h1>Step 4: ADK Web UI Verification</h1>
+        <p class="subtitle">Test single-delegation and multi-delegation queries in the ADK Web UI.</p>
+
+        <div class="callout callout-cyan">
+          <div class="callout-title">🧪 Test Prompt Suite</div>
+          <div class="callout-content">
+            Run the Web UI server and test how the supervisor collaborates with its registered sub-agents.
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Test Prompt 1: Single Delegation (Exchange Info)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>What is the location and description of COMEX?</code></pre>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Test Prompt 2: Single Delegation (Product List)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>List all product symbols available on NYMEX.</code></pre>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Test Prompt 3: Dual Swarm Delegation</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>Tell me about NYMEX and also list the products available on it.</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't4_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Test in ADK Web UI</span>
+              <span class="task-desc">Verify that Prompt 3 triggers multi-agent collaboration with both specialists before outputting the final consolidated response.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 5: QUIZ -->
+      <section class="content-panel" id="panel-quiz">
+        <h1>Challenge Knowledge Assessment</h1>
+        <p class="subtitle">Test your understanding of ADK V2 Multi-Agent Swarms & <code>sub_agents</code>.</p>
+
+        <div class="quiz-card">
+          <div class="quiz-question">1. How does a parent Supervisor Agent discover available specialists in ADK V2?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) By scanning python files in the directory</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) Through the sub_agents=[...] list registered on the parent Agent</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) By adding @specialist decorators</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) Via global state variables</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">2. What helps the supervisor determine which sub-agent is responsible for a specific user request?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) The file size of the agent</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) The sub-agent's description and instruction parameters</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) The function return type</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) The model temperature setting</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">3. What is the primary role of the Supervisor Agent after sub-agents return their findings?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) Delete session history</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) Synthesize and return one consolidated response to the user</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) Restart the web server</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) Call database functions directly</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 6: CERTIFICATE -->
+      <section class="content-panel" id="panel-cert">
+        <h1>Completion Certificate</h1>
+        <p class="subtitle">Congratulations on mastering Google ADK V2 Collaborative Multi-Agent Swarm Delegation!</p>
+
+        <div class="cert-canvas-container">
+          <input type="text" id="studentNameInput" class="cert-input" placeholder="Enter Your Full Name" oninput="generateCertificate()">
+          <canvas id="certCanvas" width="800" height="500"></canvas>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Navigation Footer -->
+    <footer class="nav-bar">
+      <button class="btn-nav btn-prev" id="btnPrev" onclick="changeStep(-1)">← Previous</button>
+      <button class="btn-nav btn-next" id="btnNext" onclick="changeStep(1)">Next Step →</button>
+    </footer>
+
+  </div>
+
+  <script>
+    let currentStep = 0;
+    const totalSteps = 7;
+
+    function goToStep(index) {
+      if (index < 0 || index >= totalSteps) return;
+      
+      document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
+
+      currentStep = index;
+      
+      const targetPanel = document.getElementById(index === 5 ? 'panel-quiz' : (index === 6 ? 'panel-cert' : `panel-${index}`));
+      if (targetPanel) targetPanel.classList.add('active');
+
+      const stepItems = document.querySelectorAll('.step-item');
+      if (stepItems[index]) stepItems[index].classList.add('active');
+
+      document.getElementById('btnPrev').style.visibility = index === 0 ? 'hidden' : 'visible';
+      document.getElementById('btnNext').innerText = index === totalSteps - 1 ? 'Finish Challenge' : 'Next Step →';
+
+      updateProgress();
+      if (index === 6) generateCertificate();
+    }
+
+    function changeStep(delta) {
+      goToStep(currentStep + delta);
+    }
+
+    function switchOsTab(os) {
+      document.querySelectorAll('.os-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.os-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelectorAll(`.os-tab-btn`).forEach(btn => {
+        if (btn.innerText.toLowerCase().includes(os)) btn.classList.add('active');
+      });
+
+      document.querySelectorAll(`.os-content[data-os="${os}"]`).forEach(c => c.classList.add('active'));
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', nextTheme);
+      document.getElementById('themeIcon').innerText = nextTheme === 'dark' ? '🌙' : '☀️';
+      if (currentStep === 6) generateCertificate();
+    }
+
+    function toggleTask(el, id) {
+      el.classList.toggle('checked');
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const totalTasks = document.querySelectorAll('.task-checkbox-container').length;
+      const checkedTasks = document.querySelectorAll('.task-checkbox-container.checked').length;
+      const percent = totalTasks === 0 ? 0 : Math.round((checkedTasks / totalTasks) * 100);
+      
+      document.getElementById('progressBar').style.width = percent + '%';
+      document.getElementById('progressPercent').innerText = percent + '%';
+    }
+
+    function copyCode(btn) {
+      const code = btn.parentElement.nextElementSibling.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        setTimeout(() => btn.innerText = orig, 1500);
+      });
+    }
+
+    function checkQuiz(el, isCorrect) {
+      const parent = el.parentElement;
+      parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct', 'incorrect'));
+      if (isCorrect) {
+        el.classList.add('correct');
+      } else {
+        el.classList.add('incorrect');
+      }
+    }
+
+    function generateCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const name = document.getElementById('studentNameInput').value.trim() || "CME Support Desk Engineer";
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Decorative Border
+      ctx.strokeStyle = "#a855f7";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+      ctx.strokeStyle = "#10b981";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(28, 28, canvas.width - 56, canvas.height - 56);
+
+      // Title
+      ctx.fillStyle = "#a855f7";
+      ctx.font = "bold 26px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("CHALLENGE CERTIFICATE OF COMPLETION", canvas.width / 2, 90);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "14px Inter, sans-serif";
+      ctx.fillText("PROUDLY PRESENTED TO", canvas.width / 2, 130);
+
+      // Student Name
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 32px Outfit, sans-serif";
+      ctx.fillText(name, canvas.width / 2, 190);
+
+      ctx.strokeStyle = "#334155";
+      ctx.beginPath();
+      ctx.moveTo(200, 210);
+      ctx.lineTo(600, 210);
+      ctx.stroke();
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "15px Inter, sans-serif";
+      ctx.fillText("For successfully mastering Collaborative Multi-Agent Swarms & sub_agents Delegation in", canvas.width / 2, 260);
+
+      ctx.fillStyle = "#10b981";
+      ctx.font = "bold 20px Outfit, sans-serif";
+      ctx.fillText("Lab 3 Challenge 3: Collaborative Multi-Agent Exchange Assistant", canvas.width / 2, 300);
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "13px Inter, sans-serif";
+      ctx.fillText("Supervisor Delegation • Specialist Peer Responsibilities • Sub-Agent Registration • Response Synthesis", canvas.width / 2, 335);
+
+      // Date & Seal
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "12px Inter, sans-serif";
+      ctx.fillText(`Issued on ${today} • CME Group AI Training`, canvas.width / 2, 420);
+    }
+  </script>
+</body>
+</html>
