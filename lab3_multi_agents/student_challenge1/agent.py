@@ -13,7 +13,7 @@ from google.adk import Agent, Workflow
 try:
     from tools import get_exchange_details, list_products_by_exchange
 except ImportError:
-    from lab3_multi_agents.student_challenge.tools import (
+    from lab3_multi_agents.student_challenge1.tools import (
         get_exchange_details,
         list_products_by_exchange,
     )
