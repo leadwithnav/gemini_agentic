@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 3 Challenge: CME Exchange Support Graph Workflow (ADK V2)</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --bg-card: #19243b;
+      --bg-card-hover: #22304e;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-purple-light: #c084fc;
+      --accent-blue: #3b82f6;
+      --accent-blue-light: #60a5fa;
+      --accent-green: #10b981;
+      --accent-green-light: #34d399;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --border-color: #263554;
+      --code-bg: #070a12;
+      --sidebar-width: 320px;
+      --header-height: 70px;
+      --footer-height: 65px;
+      --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.25);
+      --shadow-glow: 0 0 25px rgba(6, 182, 212, 0.2);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #9333ea;
+      --accent-purple-light: #a855f7;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #3b82f6;
+      --accent-green: #059669;
+      --accent-green-light: #10b981;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-cyan: #0891b2;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+      --shadow-subtle: 0 4px 15px rgba(0, 0, 0, 0.08);
+      --shadow-glow: 0 0 20px rgba(8, 145, 178, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .navbar {
+      height: var(--header-height);
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #ffffff; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+    }
+    .brand-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.15rem; color: var(--text-primary); }
+    .brand-subtitle { font-size: 0.75rem; color: var(--text-secondary); }
+
+    .nav-actions { display: flex; align-items: center; gap: 1.25rem; }
+    .progress-bar-container { width: 140px; height: 8px; background-color: var(--border-color); border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green)); transition: width 0.3s ease; }
+    .progress-percent { font-size: 0.8rem; font-weight: 600; color: var(--accent-green); }
+    .theme-toggle {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 500;
+      display: flex; align-items: center; gap: 6px; transition: var(--transition-smooth);
+    }
+    .theme-toggle:hover { background: var(--bg-card-hover); }
+
+    .main-wrapper { display: flex; flex: 1; margin-top: var(--header-height); height: calc(100vh - var(--header-height)); overflow: hidden; }
+    .sidebar { width: var(--sidebar-width); background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-heading { padding: 1.25rem 1.25rem 0.5rem 1.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .step-list { list-style: none; padding: 0 0.75rem 1.25rem 0.75rem; }
+    .step-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.85rem; border-radius: 10px; cursor: pointer; margin-bottom: 0.35rem; transition: var(--transition-smooth); border: 1px solid transparent; }
+    .step-item:hover { background-color: var(--bg-card-hover); }
+    .step-item.active { background-color: var(--bg-card); border-color: var(--accent-cyan); box-shadow: var(--shadow-glow); }
+    .step-number { width: 26px; height: 26px; border-radius: 50%; background-color: var(--border-color); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+    .step-item.active .step-number { background-color: var(--accent-cyan); color: white; }
+    .step-item.completed .step-number { background-color: var(--accent-green); color: white; }
+    .step-info { display: flex; flex-direction: column; }
+    .step-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+    .step-duration { font-size: 0.7rem; color: var(--text-muted); }
+
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 2rem 2.5rem 6rem 2.5rem; }
+    .content-panel { display: none; max-width: 960px; margin: 0 auto; width: 100%; }
+    .content-panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 { font-family: 'Outfit', sans-serif; font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .subtitle { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5; }
+
+    .callout { border-radius: 12px; padding: 1.15rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid transparent; }
+    .callout-title { font-weight: 700; font-size: 0.88rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
+    .callout-content { font-size: 0.83rem; color: var(--text-secondary); line-height: 1.6; }
+    .callout-purple { background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.25); }
+    .callout-purple .callout-title { color: var(--accent-purple-light); }
+    .callout-cyan { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.25); }
+    .callout-cyan .callout-title { color: var(--accent-cyan); }
+    .callout-amber { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); }
+    .callout-amber .callout-title { color: var(--accent-amber); }
+    .callout-green { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); }
+    .callout-green .callout-title { color: var(--accent-green-light); }
+
+    .os-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .os-tab-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: var(--transition-smooth); }
+    .os-tab-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+    .os-content { display: none; }
+    .os-content.active { display: block; }
+
+    .code-block-container { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+    .code-header { background: var(--bg-card); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
+    .code-lang-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 0.5px; }
+    .copy-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; transition: var(--transition-smooth); }
+    .copy-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    pre.code-content { padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; color: #e2e8f0; overflow-x: auto; white-space: pre-wrap; }
+
+    .task-checklist { list-style: none; margin-bottom: 1.5rem; }
+    .task-checkbox-container { display: flex; align-items: flex-start; gap: 12px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: var(--transition-smooth); }
+    .task-checkbox-container:hover { background: var(--bg-card-hover); }
+    .task-checkbox-container.checked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+    .custom-checkbox { width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: var(--transition-smooth); }
+    .task-checkbox-container.checked .custom-checkbox { background: var(--accent-green); border-color: var(--accent-green); }
+    .check-mark { width: 12px; height: 12px; fill: white; display: none; }
+    .task-checkbox-container.checked .check-mark { display: block; }
+    .task-content { display: flex; flex-direction: column; gap: 2px; }
+    .task-label { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+    .task-desc { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }
+
+    .quiz-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .quiz-question { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); margin-bottom: 14px; }
+    .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+    .quiz-option { padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; transition: var(--transition-smooth); }
+    .quiz-option:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    .quiz-option.correct { background: rgba(16, 185, 129, 0.15); border-color: var(--accent-green); color: var(--accent-green-light); font-weight: 600; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: var(--accent-red); color: var(--accent-red); }
+
+    .cert-canvas-container { display: flex; flex-direction: column; align-items: center; gap: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px; }
+    .cert-input { width: 100%; max-width: 400px; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 0.9rem; outline: none; text-align: center; }
+    canvas#certCanvas { max-width: 100%; border-radius: 12px; box-shadow: var(--shadow-subtle); }
+
+    footer.nav-bar {
+      position: fixed; bottom: 0; left: var(--sidebar-width); right: 0; height: var(--footer-height);
+      background: var(--bg-secondary); border-top: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 40px; z-index: 90;
+    }
+    .btn-nav { padding: 10px 20px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: var(--transition-smooth); }
+    .btn-prev { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-prev:hover { background: var(--bg-card-hover); }
+    .btn-next { background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan)); color: white; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); }
+    .btn-next:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">M3</div>
+      <div>
+        <div class="brand-title">Lab 3 Challenge: CME Exchange Support Graph</div>
+        <div class="brand-subtitle">Google ADK V2 • Graph State, Dynamic Intent Router & Specialist Agents</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span class="progress-percent" id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Challenge Tasks</div>
+      <ul class="step-list" id="stepsList">
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">1</span>
+          <div class="step-info">
+            <span class="step-title">Overview & Architecture</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(1)">
+          <span class="step-number">2</span>
+          <div class="step-info">
+            <span class="step-title">Task 1 & 2: State & Classifier</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(2)">
+          <span class="step-number">3</span>
+          <div class="step-info">
+            <span class="step-title">Task 3: Dynamic Router</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(3)">
+          <span class="step-number">4</span>
+          <div class="step-info">
+            <span class="step-title">Task 4 & 5: Specialists & Tools</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(4)">
+          <span class="step-number">5</span>
+          <div class="step-info">
+            <span class="step-title">Task 6: Graph Edges & Test</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(5)">
+          <span class="step-number">6</span>
+          <div class="step-info">
+            <span class="step-title">Challenge Knowledge Quiz</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(6)">
+          <span class="step-number">7</span>
+          <div class="step-info">
+            <span class="step-title">Completion Certificate</span>
+            <span class="step-duration">2 mins</span>
+          </div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+
+      <!-- STEP 0: OVERVIEW & ARCHITECTURE -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Lab 3 Student Challenge: Graph Architecture & Routing</h1>
+        <p class="subtitle">Build an end-to-end CME Exchange Support Graph Assistant using Google ADK V2 Graph Workflows, Session State, and Dynamic Intent Routing.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🎯 Challenge Architecture Overview</div>
+          <div class="callout-content">
+            Your task is to complete the incomplete <code>agent.py</code> inside <code>lab3_multi_agents/student_challenge/</code>. The workflow captures the original request, classifies user intent, routes dynamically to the appropriate specialist agent, injects state context, calls registered tools, and completes the execution graph.
+          </div>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <img src="images/challenge_lab3_architecture.png" alt="Lab 3 Challenge System Architecture" style="max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-subtle);">
+        </div>
+
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <div class="os-content active" data-os="linux">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Bash Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Navigate to the challenge directory and launch Google ADK Web UI
+cd lab3_multi_agents/student_challenge
+adk web --port 8000 .</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># Navigate to the challenge directory and launch Google ADK Web UI
+Set-Location lab3_multi_agents/student_challenge
+adk web --port 8000 .</code></pre>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't0_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Locate student_challenge/agent.py</span>
+              <span class="task-desc">Open `lab3_multi_agents/student_challenge/agent.py` in your code editor and review the `TODO` placeholders.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 1: TASK 1 & 2 -->
+      <section class="content-panel" id="panel-1">
+        <h1>Task 1 & 2: Save Request to State & Request Classifier</h1>
+        <p class="subtitle">Extract original prompt into state context and configure intent output_key.</p>
+
+        <div class="callout callout-cyan">
+          <div class="callout-title">💡 State Capture & Classification Contract</div>
+          <div class="callout-content">
+            • <b>Task 1</b>: Implement <code>save_original_request(ctx)</code> to store the prompt string inside <code>ctx.state["original_request"]</code>.<br>
+            • <b>Task 2</b>: Set <code>output_key="classified_intent"</code> on <code>request_classifier</code> so intent results write directly to state.
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Starter Template: Task 1 & 2 (agent.py)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code># Task 1: Save original prompt string in state
+def save_original_request(ctx):
+    # TODO: Extract prompt string from ctx and set ctx.state["original_request"]
+    pass
+
+# Task 2: Configure request classifier agent output_key
+request_classifier = Agent(
+    name="request_classifier",
+    model="gemini-2.5-flash",
+    instruction="""Analyze query and output EXACTLY ONE category: EXCHANGE_INFO, PRODUCT_LIST, GENERAL_EXCHANGE.""",
+    output_key="???", # TODO: Change to "classified_intent"
+)</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Complete Task 1</span>
+              <span class="task-desc">Implement `save_original_request(ctx)` to write `ctx.state["original_request"] = prompt`.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't1_2')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Complete Task 2</span>
+              <span class="task-desc">Set `output_key="classified_intent"` on `request_classifier` Agent.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 2: TASK 3 -->
+      <section class="content-panel" id="panel-2">
+        <h1>Task 3: Dynamic Intent Router Function</h1>
+        <p class="subtitle">Inspect state classification intent and return the target specialist node name.</p>
+
+        <div class="callout callout-amber">
+          <div class="callout-title">🔀 Router Function Specification</div>
+          <div class="callout-content">
+            Inspect <code>classified_intent = ctx.state.get("classified_intent", "GENERAL_EXCHANGE")</code> and return string name of target agent node:<br>
+            • <code>EXCHANGE_INFO</code> ➔ <code>"exchange_info_agent"</code><br>
+            • <code>PRODUCT_LIST</code> ➔ <code>"product_list_agent"</code><br>
+            • Default / <code>GENERAL_EXCHANGE</code> ➔ <code>"general_exchange_agent"</code>
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Starter Template: Task 3 (agent.py)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>def route_request(ctx):
+    """
+    TODO: Retrieve classified_intent from ctx.state and return the target agent node name:
+    - EXCHANGE_INFO -> "exchange_info_agent"
+    - PRODUCT_LIST -> "product_list_agent"
+    - GENERAL_EXCHANGE -> "general_exchange_agent"
+    """
+    # TODO: Implement conditional branch logic
+    pass</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't2_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Complete Task 3</span>
+              <span class="task-desc">Implement `route_request(ctx)` function returning target specialist agent node name string.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 3: TASK 4 & 5 -->
+      <section class="content-panel" id="panel-3">
+        <h1>Task 4 & 5: State Injection & Tool Registration</h1>
+        <p class="subtitle">Use <code>{original_request}</code> state placeholders and register tools on specialist agents.</p>
+
+        <div class="callout callout-green">
+          <div class="callout-title">🛠️ Specialist Requirements</div>
+          <div class="callout-content">
+            • <b>exchange_info_agent</b>: Must use <code>Original Query: {original_request}</code> and register <code>tools=[get_exchange_details]</code>.<br>
+            • <b>product_list_agent</b>: Must use <code>Original Query: {original_request}</code> and register <code>tools=[list_products_by_exchange]</code>.<br>
+            • <b>general_exchange_agent</b>: Must use <code>Original Query: {original_request}</code> with no tools (<code>tools=[]</code>).
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Starter Template: Task 4 & 5 (agent.py)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code># Task 4 & 5: Specialist Agents
+exchange_info_agent = Agent(
+    name="exchange_info_agent",
+    model="gemini-2.5-flash",
+    instruction="""You are Exchange Specialist. Original Query: {original_request}""",
+    tools=[???], # TODO: Add get_exchange_details
+)
+
+product_list_agent = Agent(
+    name="product_list_agent",
+    model="gemini-2.5-flash",
+    instruction="""You are Product Specialist. Original Query: {original_request}""",
+    tools=[???], # TODO: Add list_products_by_exchange
+)</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't3_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Complete Task 4 & 5</span>
+              <span class="task-desc">Equip `{original_request}` state placeholders and register tools `get_exchange_details` and `list_products_by_exchange`.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 4: TASK 6 -->
+      <section class="content-panel" id="panel-4">
+        <h1>Task 6: Graph Edges & ADK Web UI Verification</h1>
+        <p class="subtitle">Assemble graph execution edges in <code>Workflow</code> root agent and verify end-to-end execution.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🌿 Graph Edge Wiring Specification</div>
+          <div class="callout-content">
+            Define graph edges in <code>root_agent = Workflow(name="student_challenge", edges=[...])</code>:<br>
+            • <code>("START", save_original_request)</code><br>
+            • <code>(save_original_request, request_classifier)</code><br>
+            • <code>(request_classifier, route_request)</code><br>
+            • <code>(route_request, exchange_info_agent)</code>, <code>(route_request, product_list_agent)</code>, <code>(route_request, general_exchange_agent)</code><br>
+            • <code>(exchange_info_agent, "END")</code>, <code>(product_list_agent, "END")</code>, <code>(general_exchange_agent, "END")</code>
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Test Queries for ADK Web UI</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code># Test 1: Exchange Info
+What is the location and description of NYMEX?
+
+# Test 2: Product List
+Which product symbols belong to COMEX?
+
+# Test 3: General Exchange
+Hello, can you help me understand CME Group exchange services?</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 't4_1')">
+            <div class="custom-checkbox">
+              <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="task-content">
+              <span class="task-label">Complete Task 6</span>
+              <span class="task-desc">Assemble all graph edges in `root_agent = Workflow(...)` and test all 3 query paths in ADK Web UI.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 5: QUIZ -->
+      <section class="content-panel" id="panel-quiz">
+        <h1>Challenge Knowledge Assessment</h1>
+        <p class="subtitle">Verify your understanding of ADK V2 Graph Architecture, State Keys, and Dynamic Routing.</p>
+
+        <div class="quiz-card">
+          <div class="quiz-question">1. How do you save custom state parameters in Google ADK V2 graph nodes?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) global_state["key"] = value</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) ctx.state["key"] = value</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) Agent.set_state("key", value)</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) Workflow.save_state("key", value)</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">2. What property on ADK V2 Agent instances directs LLM output into session state?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) state_key="..."</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) output_key="..."</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) return_key="..."</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) save_key="..."</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">3. How are graph execution edges defined in ADK V2 Workflow?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" onclick="checkQuiz(this, false)">A) Workflow.add_connection(source, target)</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">B) Workflow(name="...", edges=[(source_node, target_node), ...])</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">C) @graph_edge(from_node, to_node)</div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)">D) Agent.connect_to(next_agent)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 6: CERTIFICATE -->
+      <section class="content-panel" id="panel-cert">
+        <h1>Completion Certificate</h1>
+        <p class="subtitle">Congratulations on mastering Google ADK V2 Multi-Agent Graph Architecture & Student Challenge!</p>
+
+        <div class="cert-canvas-container">
+          <input type="text" id="studentNameInput" class="cert-input" placeholder="Enter Your Full Name" oninput="generateCertificate()">
+          <canvas id="certCanvas" width="800" height="500"></canvas>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Navigation Footer -->
+    <footer class="nav-bar">
+      <button class="btn-nav btn-prev" id="btnPrev" onclick="changeStep(-1)">← Previous</button>
+      <button class="btn-nav btn-next" id="btnNext" onclick="changeStep(1)">Next Step →</button>
+    </footer>
+
+  </div>
+
+  <script>
+    let currentStep = 0;
+    const totalSteps = 7;
+
+    function goToStep(index) {
+      if (index < 0 || index >= totalSteps) return;
+      
+      document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
+
+      currentStep = index;
+      
+      const targetPanel = document.getElementById(index === 5 ? 'panel-quiz' : (index === 6 ? 'panel-cert' : `panel-${index}`));
+      if (targetPanel) targetPanel.classList.add('active');
+
+      const stepItems = document.querySelectorAll('.step-item');
+      if (stepItems[index]) stepItems[index].classList.add('active');
+
+      document.getElementById('btnPrev').style.visibility = index === 0 ? 'hidden' : 'visible';
+      document.getElementById('btnNext').innerText = index === totalSteps - 1 ? 'Finish Challenge' : 'Next Step →';
+
+      updateProgress();
+      if (index === 6) generateCertificate();
+    }
+
+    function changeStep(delta) {
+      goToStep(currentStep + delta);
+    }
+
+    function switchOsTab(os) {
+      document.querySelectorAll('.os-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.os-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelectorAll(`.os-tab-btn`).forEach(btn => {
+        if (btn.innerText.toLowerCase().includes(os)) btn.classList.add('active');
+      });
+
+      document.querySelectorAll(`.os-content[data-os="${os}"]`).forEach(c => c.classList.add('active'));
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', nextTheme);
+      document.getElementById('themeIcon').innerText = nextTheme === 'dark' ? '🌙' : '☀️';
+      if (currentStep === 6) generateCertificate();
+    }
+
+    function toggleTask(el, id) {
+      el.classList.toggle('checked');
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const totalTasks = document.querySelectorAll('.task-checkbox-container').length;
+      const checkedTasks = document.querySelectorAll('.task-checkbox-container.checked').length;
+      const percent = totalTasks === 0 ? 0 : Math.round((checkedTasks / totalTasks) * 100);
+      
+      document.getElementById('progressBar').style.width = percent + '%';
+      document.getElementById('progressPercent').innerText = percent + '%';
+    }
+
+    function copyCode(btn) {
+      const code = btn.parentElement.nextElementSibling.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        setTimeout(() => btn.innerText = orig, 1500);
+      });
+    }
+
+    function checkQuiz(el, isCorrect) {
+      const parent = el.parentElement;
+      parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct', 'incorrect'));
+      if (isCorrect) {
+        el.classList.add('correct');
+      } else {
+        el.classList.add('incorrect');
+      }
+    }
+
+    function generateCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const name = document.getElementById('studentNameInput').value.trim() || "CME Support Desk Engineer";
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Decorative Border
+      ctx.strokeStyle = "#a855f7";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+      ctx.strokeStyle = "#06b6d4";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(28, 28, canvas.width - 56, canvas.height - 56);
+
+      // Title
+      ctx.fillStyle = "#a855f7";
+      ctx.font = "bold 26px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("CHALLENGE CERTIFICATE OF COMPLETION", canvas.width / 2, 90);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "14px Inter, sans-serif";
+      ctx.fillText("PROUDLY PRESENTED TO", canvas.width / 2, 130);
+
+      // Student Name
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 32px Outfit, sans-serif";
+      ctx.fillText(name, canvas.width / 2, 190);
+
+      ctx.strokeStyle = "#334155";
+      ctx.beginPath();
+      ctx.moveTo(200, 210);
+      ctx.lineTo(600, 210);
+      ctx.stroke();
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "15px Inter, sans-serif";
+      ctx.fillText("For successfully mastering Google ADK V2 Graph Architecture & State Routing in", canvas.width / 2, 260);
+
+      ctx.fillStyle = "#06b6d4";
+      ctx.font = "bold 20px Outfit, sans-serif";
+      ctx.fillText("Lab 3 Challenge: CME Exchange Support Graph Assistant", canvas.width / 2, 300);
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "13px Inter, sans-serif";
+      ctx.fillText("Session State • Intent Classification • Dynamic Router • Multi-Agent Specialist Graph", canvas.width / 2, 335);
+
+      // Date & Seal
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "12px Inter, sans-serif";
+      ctx.fillText(`Issued on ${today} • CME Group AI Training`, canvas.width / 2, 420);
+    }
+  </script>
+</body>
+</html>
