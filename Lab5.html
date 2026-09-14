@@ -259,40 +259,60 @@ ADK Agent / Inspector ──(MCP Protocol)──> CME Incident MCP Server (Port 
         <div class="os-content active" data-os="bash">
           <div class="code-block-container">
             <div class="code-header">
-              <span class="code-lang-badge">Terminal Commands - Setup & Services</span>
+              <span class="code-lang-badge">Terminal Commands - Setup & 3 Service Terminals</span>
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
             </div>
-            <pre class="code-content"><code># 1. Install dependencies
-pip install -r lab5_mcp_agents/requirements.txt
+            <pre class="code-content"><code># ============================================================
+# TERMINAL 1: Launch FastAPI REST API (Keep Running)
+# ============================================================
+# For Git Bash (Windows): source lab1_getting_started/venv/Scripts/activate
+# For Linux/macOS: source lab1_getting_started/venv/bin/activate
+source lab1_getting_started/venv/Scripts/activate
+pip install -r lab5_mcp_agents/cme_agent/requirements.txt
+python -m uvicorn lab5_mcp_agents.cme_agent.integrations.incident_api.app:app --host 127.0.0.1 --port 8001
 
-# 2. Terminal 1: Launch FastAPI REST API on port 8001
-python -m uvicorn lab5_mcp_agents.incident_api.app:app --host 127.0.0.1 --port 8001
+# ============================================================
+# TERMINAL 2: Launch CME Incident MCP Server (Keep Running)
+# ============================================================
+# Open a 2nd terminal window/tab:
+source lab1_getting_started/venv/Scripts/activate
+python lab5_mcp_agents/cme_agent/integrations/incident_mcp/server.py
 
-# 3. Terminal 2: Launch CME Incident MCP Server on port 8002
-python lab5_mcp_agents/incident_mcp/server.py
-
-# 4. Terminal 3: Test ADK Agent or Web UI
-adk web --port 8000 lab5_mcp_agents</code></pre>
+# ============================================================
+# TERMINAL 3: Launch ADK Agent Web UI
+# ============================================================
+# Open a 3rd terminal window/tab:
+source lab1_getting_started/venv/Scripts/activate
+adk web --port 8000 lab5_mcp_agents/cme_agent</code></pre>
           </div>
         </div>
 
         <div class="os-content" data-os="powershell">
           <div class="code-block-container">
             <div class="code-header">
-              <span class="code-lang-badge">PowerShell Commands - Setup & Services</span>
+              <span class="code-lang-badge">PowerShell Commands - Setup & 3 Service Terminals</span>
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
             </div>
-            <pre class="code-content"><code># 1. Install dependencies
-pip install -r lab5_mcp_agents/requirements.txt
+            <pre class="code-content"><code># ============================================================
+# TERMINAL 1: Launch FastAPI REST API (Keep Running)
+# ============================================================
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+pip install -r lab5_mcp_agents/cme_agent/requirements.txt
+python -m uvicorn lab5_mcp_agents.cme_agent.integrations.incident_api.app:app --host 127.0.0.1 --port 8001
 
-# 2. Terminal 1: Launch FastAPI REST API on port 8001
-python -m uvicorn lab5_mcp_agents.incident_api.app:app --host 127.0.0.1 --port 8001
+# ============================================================
+# TERMINAL 2: Launch CME Incident MCP Server (Keep Running)
+# ============================================================
+# Open a 2nd terminal window/tab:
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+python lab5_mcp_agents/cme_agent/integrations/incident_mcp/server.py
 
-# 3. Terminal 2: Launch CME Incident MCP Server on port 8002
-python lab5_mcp_agents/incident_mcp/server.py
-
-# 4. Terminal 3: Test ADK Agent or Web UI
-adk web --port 8000 lab5_mcp_agents</code></pre>
+# ============================================================
+# TERMINAL 3: Launch ADK Agent Web UI
+# ============================================================
+# Open a 3rd terminal window/tab:
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+adk web --port 8000 lab5_mcp_agents/cme_agent</code></pre>
           </div>
         </div>
 
@@ -373,16 +393,16 @@ adk web --port 8000 lab5_mcp_agents</code></pre>
 
         <div class="code-block-container">
           <div class="code-header">
-            <span class="code-lang-badge">MCP Server Implementation (incident_mcp/server.py)</span>
+            <span class="code-lang-badge">MCP Server Implementation (integrations/incident_mcp/server.py)</span>
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
           <pre class="code-content"><code>import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 REST_API_BASE_URL = "http://127.0.0.1:8001"
 HTTP_TIMEOUT = 5.0
 
-mcp = FastMCP("CME Incident Management MCP Server", host="127.0.0.1", port=8002, streamable_http_path="/mcp")
+mcp = MCPServer("CME Incident Management MCP Server")
 
 @mcp.tool()
 def get_incident_by_id(incident_id: str) -> dict:
@@ -413,23 +433,28 @@ def get_incidents_by_symbol(symbol: str) -> dict:
         return {"found": False, "error": "Incident service unavailable"}
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")</code></pre>
+    mcp.run(
+        transport="streamable-http",
+        host="127.0.0.1",
+        port=8002,
+        streamable_http_path="/mcp",
+    )</code></pre>
         </div>
 
-        <h2>Google ADK McpToolset Configuration (tools.py)</h2>
+        <h2>Google ADK McpToolset Configuration (cme_agent/tools.py)</h2>
         <div class="code-block-container">
           <div class="code-header">
-            <span class="code-lang-badge">ADK McpToolset Definition (lab5_mcp_agents/tools.py)</span>
+            <span class="code-lang-badge">ADK McpToolset Definition (lab5_mcp_agents/cme_agent/tools.py)</span>
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
           <pre class="code-content"><code>from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 
-# Connect ADK agents to the Streamable HTTP MCP Server
+# Connect ADK agents to the Streamable HTTP MCP Server on port 8002
 mcp_connection_params = StreamableHTTPConnectionParams(
     url="http://127.0.0.1:8002/mcp"
 )
 
-# Instantiate ADK McpToolset
+# Instantiate ADK McpToolset wrapping remote MCP Server
 incident_mcp_toolset = McpToolset(
     connection_params=mcp_connection_params
 )</code></pre>
@@ -438,7 +463,7 @@ incident_mcp_toolset = McpToolset(
         <div class="callout callout-amber">
           <div class="callout-title">🧪 Sample Test Prompts for ADK Agent / Web UI</div>
           <div class="callout-content">
-            Test the integrated agent using <code>adk web --port 8000 lab5_mcp_agents</code> or ADK CLI:
+            Test the integrated agent using <code>adk web --port 8000 lab5_mcp_agents/cme_agent</code> or ADK CLI:
             <ul style="margin-left: 20px; margin-top: 6px;">
               <li><code>"What is the status of incident INC-101?"</code> → Agent executes <code>get_incident_by_id("INC-101")</code></li>
               <li><code>"Are there any active support incidents affecting NQ futures?"</code> → Agent executes <code>get_incidents_by_symbol("NQ")</code></li>

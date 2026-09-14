@@ -6,18 +6,15 @@ Translates MCP tool calls into HTTP requests to the underlying REST API.
 """
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
+
+mcp = MCPServer("CME Incident Server")
 
 REST_API_BASE_URL = "http://127.0.0.1:8001"
 HTTP_TIMEOUT = 5.0
 
 # Initialize FastMCP Server configured for Streamable HTTP transport on port 8002
-mcp = FastMCP(
-    "CME Incident Management MCP Server",
-    host="127.0.0.1",
-    port=8002,
-    streamable_http_path="/mcp"
-)
+mcp =  MCPServer("CME Incident Management MCP Server")
 
 @mcp.tool()
 def get_incident_by_id(incident_id: str) -> dict:
@@ -87,5 +84,10 @@ def get_incidents_by_symbol(symbol: str) -> dict:
 
 
 if __name__ == "__main__":
-    print("[MCP] Starting CME Incident Management MCP Server on http://127.0.0.1:8002/mcp ...", flush=True)
-    mcp.run(transport="streamable-http")
+
+    mcp.run(
+        transport="streamable-http",
+        host="127.0.0.1",
+        port=8002,
+        streamable_http_path="/mcp",
+    )
