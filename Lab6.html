@@ -251,14 +251,14 @@
           <span class="step-number">2</span>
           <div class="step-info">
             <span class="step-title">Agent Definition</span>
-            <span class="step-duration">app/agent.py</span>
+            <span class="step-duration">cme_agent/app/agent.py</span>
           </div>
         </li>
         <li class="step-item" onclick="goToStep(2)">
           <span class="step-number">3</span>
           <div class="step-info">
             <span class="step-title">Testing with ADK Web</span>
-            <span class="step-duration">adk web lab6_callback_agents</span>
+            <span class="step-duration">adk web lab6_callback_agents/cme_agent</span>
           </div>
         </li>
         <li class="step-item" onclick="goToStep(3)">
@@ -302,16 +302,21 @@
           <div class="callout-content">
             <pre style="font-family:'Fira Code',monospace; font-size:12px; background:var(--code-bg); padding:10px; border-radius:6px; margin-top:8px;">
 lab6_callback_agents/
-├── app/
-│   └── agent.py               # Workflow graph with before & after tool callbacks
-├── callbacks/
-│   └── callback_tools.py          # Modular helper functions (validate_input, check_permission, etc.)
-├── integrations/
-│   ├── incident_api/              # FastAPI incident REST backend
-│   └── incident_mcp/              # FastMCP incident server
-└── tools/
-    ├── bigquery_tools.py          # BigQuery tools
-    └── mcp_tools.py               # MCP tools</pre>
+├── requirements.txt
+└── cme_agent/
+    ├── app/
+    │   └── agent.py               # Workflow graph with before_tool_callback & after_tool_callback
+    ├── callbacks/
+    │   └── callback_tools.py      # Security guardrails, input validation, & latency logging callbacks
+    ├── integrations/
+    │   ├── incident_api/          # FastAPI incident REST backend (Port 8001)
+    │   │   ├── app.py
+    │   │   └── data.py
+    │   └── incident_mcp/          # FastMCP incident server (Port 8002)
+    │       └── server.py
+    └── tools/
+        ├── bigquery_tools.py      # Enterprise BigQuery toolset configuration
+        └── mcp_tools.py           # Streamable HTTP McpToolset configuration (Port 8002)</pre>
           </div>
         </div>
 
@@ -339,12 +344,12 @@ lab6_callback_agents/
 
       <!-- STEP 2: AGENT DEFINITION -->
       <section class="content-panel" id="panel-1">
-        <h1>Step 2: Agent Workflow Definition (app/agent.py)</h1>
+        <h1>Step 2: Agent Workflow Definition (cme_agent/app/agent.py)</h1>
         <p class="subtitle">Review the root workflow graph linking specialist sub-agents with <code>before_tool_callback</code> and <code>after_tool_callback</code>.</p>
 
         <div class="code-block-container">
           <div class="code-header">
-            <span class="code-lang-badge">Python • app/agent.py</span>
+            <span class="code-lang-badge">Python • lab6_callback_agents/cme_agent/app/agent.py</span>
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
           <pre class="code-content"><code>from google.adk import Agent, Workflow, Event, Context
@@ -382,7 +387,7 @@ root_agent = Workflow(
               <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </div>
             <div class="task-content">
-              <span class="task-label">Inspect lab6_callback_agents/app/agent.py</span>
+              <span class="task-label">Inspect lab6_callback_agents/cme_agent/app/agent.py</span>
               <span class="task-desc">Verify root_agent workflow, specialist agents, and relative module imports.</span>
             </div>
           </li>
@@ -392,32 +397,70 @@ root_agent = Workflow(
       <!-- STEP 3: TESTING WITH ADK WEB -->
       <section class="content-panel" id="panel-2">
         <h1>Step 3: Launching & Testing with ADK Web GUI</h1>
-        <p class="subtitle">Launch the ADK Developer UI using <code>adk web lab6_callback_agents</code> and test CME support prompts interactively.</p>
+        <p class="subtitle">Launch the REST API microservice, MCP Server, and ADK Developer UI across 3 separate terminal windows to test CME support prompts interactively.</p>
 
         <div class="os-tab-bar">
-          <button class="os-tab-btn active" onclick="switchOsTab('linux')">🐧 Linux / macOS</button>
+          <button class="os-tab-btn active" onclick="switchOsTab('linux')">🐧 Linux / macOS / Git Bash</button>
           <button class="os-tab-btn" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
         </div>
 
         <div class="os-content active" data-os="linux">
           <div class="code-block-container">
             <div class="code-header">
-              <span class="code-lang-badge">Bash Command • Launch ADK Web</span>
+              <span class="code-lang-badge">Terminal Commands - Setup & 3 Service Terminals</span>
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
             </div>
-            <pre class="code-content"><code># Launch ADK Web GUI for lab6_callback_agents
-adk web lab6_callback_agents</code></pre>
+            <pre class="code-content"><code># ============================================================
+# TERMINAL 1: Launch FastAPI REST API (Keep Running)
+# ============================================================
+# For Git Bash (Windows): source lab1_getting_started/venv/Scripts/activate
+# For Linux/macOS: source lab1_getting_started/venv/bin/activate
+source lab1_getting_started/venv/Scripts/activate
+pip install -r lab6_callback_agents/requirements.txt
+python -m uvicorn lab6_callback_agents.cme_agent.integrations.incident_api.app:app --host 127.0.0.1 --port 8001
+
+# ============================================================
+# TERMINAL 2: Launch CME Incident MCP Server (Keep Running)
+# ============================================================
+# Open a 2nd terminal window/tab:
+source lab1_getting_started/venv/Scripts/activate
+python lab6_callback_agents/cme_agent/integrations/incident_mcp/server.py
+
+# ============================================================
+# TERMINAL 3: Launch ADK Agent Web UI
+# ============================================================
+# Open a 3rd terminal window/tab:
+source lab1_getting_started/venv/Scripts/activate
+adk web --port 8000 lab6_callback_agents/cme_agent</code></pre>
           </div>
         </div>
 
         <div class="os-content" data-os="powershell">
           <div class="code-block-container">
             <div class="code-header">
-              <span class="code-lang-badge">PowerShell Command • Launch ADK Web</span>
+              <span class="code-lang-badge">PowerShell Commands - Setup & 3 Service Terminals</span>
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
             </div>
-            <pre class="code-content"><code># Launch ADK Web GUI for lab6_callback_agents in PowerShell
-adk web lab6_callback_agents</code></pre>
+            <pre class="code-content"><code># ============================================================
+# TERMINAL 1: Launch FastAPI REST API (Keep Running)
+# ============================================================
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+pip install -r lab6_callback_agents/requirements.txt
+python -m uvicorn lab6_callback_agents.cme_agent.integrations.incident_api.app:app --host 127.0.0.1 --port 8001
+
+# ============================================================
+# TERMINAL 2: Launch CME Incident MCP Server (Keep Running)
+# ============================================================
+# Open a 2nd terminal window/tab:
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+python lab6_callback_agents/cme_agent/integrations/incident_mcp/server.py
+
+# ============================================================
+# TERMINAL 3: Launch ADK Agent Web UI
+# ============================================================
+# Open a 3rd terminal window/tab:
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+adk web --port 8000 lab6_callback_agents/cme_agent</code></pre>
           </div>
         </div>
 
@@ -440,8 +483,8 @@ adk web lab6_callback_agents</code></pre>
               <svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </div>
             <div class="task-content">
-              <span class="task-label">Launch adk web lab6_callback_agents</span>
-              <span class="task-desc">Open the ADK Web GUI server in your browser.</span>
+              <span class="task-label">Launch adk web --port 8000 lab6_callback_agents/cme_agent</span>
+              <span class="task-desc">Open the ADK Web GUI server in your browser after launching REST API and MCP server.</span>
             </div>
           </li>
           <li class="task-checkbox-container" onclick="toggleTask(this, 't3_2')">
@@ -462,9 +505,9 @@ adk web lab6_callback_agents</code></pre>
         <p class="subtitle">Test your understanding of before_tool_callback, after_tool_callback, and ADK Web testing.</p>
 
         <div class="quiz-card">
-          <div class="quiz-question">1. What command launches the ADK Web Developer GUI for testing `lab6_callback_agents`?</div>
+          <div class="quiz-question">1. What command launches the ADK Web Developer GUI for testing `lab6_callback_agents/cme_agent`?</div>
           <div class="quiz-options">
-            <div class="quiz-option" onclick="checkQuiz(this, true)">A) adk web lab6_callback_agents</div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)">A) adk web --port 8000 lab6_callback_agents/cme_agent</div>
             <div class="quiz-option" onclick="checkQuiz(this, false)">B) python runner.py</div>
             <div class="quiz-option" onclick="checkQuiz(this, false)">C) gcloud app run</div>
           </div>

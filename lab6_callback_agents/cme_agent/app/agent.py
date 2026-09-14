@@ -12,57 +12,31 @@ Request Classifier
      ↓
 Router
      ↓
- ┌──────────────────┬──────────────────────┬──────────────────┬──────────────────┐
- ↓                  ↓                      ↓                  ↓
-INCIDENT_SUPPORT   MARKET_STATUS_SUPPORT  PRODUCT_SUPPORT    KNOWLEDGE_SUPPORT
- ↓                  ↓                      ↓                  ↓
-MCP Server         BigQuery               BigQuery           Remote A2A Agent
-incidents          market_status          products           ↓
-                                                          RAG Agent
-                                                             ↓
-                                                        Knowledge Base
+ ┌──────────────────┬──────────────────────┬──────────────
+ ↓                  ↓                      ↓                
+INCIDENT_SUPPORT   MARKET_STATUS_SUPPORT  PRODUCT_SUPPORT    
+ ↓                  ↓                      ↓                  
+MCP Server         BigQuery               BigQuery           
+incidents          market_status          products           
+                                                        
+                                                        
 """
 
 import os
 
 from google.adk import Agent, Workflow, Event, Context
-from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
-
-try:
-    from ..tools.mcp_tools import incident_mcp_toolset
-    from ..tools.bigquery_tools import (
+from ..tools.mcp_tools import incident_mcp_toolset
+from ..tools.bigquery_tools import (
         MODEL,
         PROJECT_ID,
         DATASET_ID,
         bigquery_toolset,
     )
-    from ..callbacks.callback_tools import (
+from ..callbacks.callback_tools import (
         before_tool_callback,
         after_tool_callback,
     )
 
-except (ImportError, ValueError):
-    from lab6_callback_agents.tools.mcp_tools import incident_mcp_toolset
-    from lab6_callback_agents.tools.bigquery_tools import (
-        MODEL,
-        PROJECT_ID,
-        DATASET_ID,
-        bigquery_toolset,
-    )
-    from lab6_callback_agents.callbacks.callback_tools import (
-        before_tool_callback,
-        after_tool_callback,
-    )
-
-
-# ============================================================
-# 0. REMOTE KNOWLEDGE AGENT CONFIG
-# ============================================================
-
-KNOWLEDGE_AGENT_CARD_URL = os.getenv(
-    "KNOWLEDGE_AGENT_CARD_URL",
-    "http://localhost:8003/.well-known/agent-card.json",
-)
 
 
 # ============================================================
@@ -379,36 +353,6 @@ Do not invent information that was not returned by BigQuery.
 )
 
 
-# ============================================================
-# 4D. KNOWLEDGE SUPPORT AGENT
-#     REMOTE A2A AGENT
-# ============================================================
-
-knowledge_support_agent = RemoteA2aAgent(
-    name="knowledge_support_agent",
-
-    description="""
-Remote CME Knowledge Support Agent.
-
-Use this agent for questions requiring information from:
-
-- CME policies
-- operational procedures
-- support documentation
-- runbooks
-- internal FAQs
-- escalation guides
-- enterprise knowledge documents
-
-The remote agent uses RAG to retrieve relevant knowledge
-before generating an answer.
-""",
-
-    agent_card=KNOWLEDGE_AGENT_CARD_URL,
-
-    timeout=30.0,
-)
-
 
 # ============================================================
 # 5. ROOT WORKFLOW
@@ -435,10 +379,7 @@ root_agent = Workflow(
                     market_status_support_agent,
 
                 "PRODUCT_SUPPORT":
-                    product_support_agent,
-
-                "KNOWLEDGE_SUPPORT":
-                    knowledge_support_agent,
+                    product_support_agent
             },
         ),
     ],

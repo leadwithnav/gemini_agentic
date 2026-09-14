@@ -36,13 +36,9 @@ from typing import Dict, Any, Optional
 from google.adk import Context
 from pydantic import BaseModel, Field, ValidationError
 
-try:
-    from ..tools.bigquery_tools import PROJECT_ID, DATASET_ID
-except (ImportError, ValueError):
-    try:
-        from tools.bigquery_tools import PROJECT_ID, DATASET_ID
-    except ImportError:
-        from bigquery_tools import PROJECT_ID, DATASET_ID
+
+from ..tools.bigquery_tools import PROJECT_ID, DATASET_ID
+from ..tools.bigquery_tools import PROJECT_ID, DATASET_ID
 
 # Configure logger
 logger = logging.getLogger("cme_agent")
