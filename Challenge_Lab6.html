@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 6 Challenge: Security Governance & Observability with Callbacks | CME Support Desk</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --bg-card: #19243b;
+      --bg-card-hover: #22304e;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-purple-light: #c084fc;
+      --accent-blue: #3b82f6;
+      --accent-blue-light: #60a5fa;
+      --accent-green: #10b981;
+      --accent-green-light: #34d399;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --border-color: #263554;
+      --code-bg: #070a12;
+      --sidebar-width: 320px;
+      --header-height: 70px;
+      --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.25);
+      --shadow-glow: 0 0 25px rgba(168, 85, 247, 0.2);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #9333ea;
+      --accent-purple-light: #a855f7;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #3b82f6;
+      --accent-green: #059669;
+      --accent-green-light: #10b981;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-cyan: #0891b2;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+      --shadow-subtle: 0 4px 15px rgba(0, 0, 0, 0.08);
+      --shadow-glow: 0 0 20px rgba(147, 51, 234, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      display: flex; flex-direction: column; height: 100vh;
+    }
+
+    /* Navbar */
+    .navbar {
+      height: var(--header-height);
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      color: #ffffff; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.1rem;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+    }
+    .brand-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.15rem; color: var(--text-primary); }
+    .brand-subtitle { font-size: 0.75rem; color: var(--text-secondary); }
+
+    .nav-actions { display: flex; align-items: center; gap: 1.25rem; }
+    .progress-bar-container { width: 140px; height: 8px; background-color: var(--border-color); border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan)); transition: width 0.3s ease; }
+    .progress-percent { font-size: 0.8rem; font-weight: 600; color: var(--accent-purple-light); }
+    .theme-toggle {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 500;
+      display: flex; align-items: center; gap: 6px; transition: var(--transition-smooth);
+    }
+    .theme-toggle:hover { background: var(--bg-card-hover); }
+
+    /* Layout Structure */
+    .main-wrapper { display: flex; flex: 1; margin-top: var(--header-height); height: calc(100vh - var(--header-height)); overflow: hidden; }
+    
+    /* Sidebar */
+    .sidebar { width: var(--sidebar-width); background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-heading { padding: 1.25rem 1.25rem 0.5rem 1.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .step-list { list-style: none; padding: 0 0.75rem 1.25rem 0.75rem; }
+    .step-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.85rem; border-radius: 10px; cursor: pointer; margin-bottom: 0.35rem; transition: var(--transition-smooth); border: 1px solid transparent; }
+    .step-item:hover { background-color: var(--bg-card-hover); }
+    .step-item.active { background-color: var(--bg-card); border-color: var(--accent-purple); box-shadow: var(--shadow-glow); }
+    .step-number { width: 26px; height: 26px; border-radius: 50%; background-color: var(--border-color); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+    .step-item.active .step-number { background-color: var(--accent-purple); color: white; }
+    .step-item.completed .step-number { background-color: var(--accent-green); color: white; }
+    .step-info { display: flex; flex-direction: column; }
+    .step-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+    .step-duration { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Content Area */
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 2rem 2.5rem 6rem 2.5rem; }
+    .content-panel { display: none; max-width: 960px; margin: 0 auto; width: 100%; }
+    .content-panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 { font-family: 'Outfit', sans-serif; font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+    h2 { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 600; color: var(--accent-cyan); margin: 1.75rem 0 0.85rem 0; }
+    .subtitle { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5; }
+
+    /* Cards & Callouts */
+    .callout { border-radius: 12px; padding: 1.15rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid transparent; }
+    .callout-title { font-weight: 700; font-size: 0.88rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
+    .callout-content { font-size: 0.83rem; color: var(--text-secondary); line-height: 1.6; }
+    .callout-purple { background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.25); }
+    .callout-purple .callout-title { color: var(--accent-purple-light); }
+    .callout-cyan { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.25); }
+    .callout-cyan .callout-title { color: var(--accent-cyan); }
+    .callout-amber { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); }
+    .callout-amber .callout-title { color: var(--accent-amber); }
+    .callout-green { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); }
+    .callout-green .callout-title { color: var(--accent-green-light); }
+    .callout-blue { background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); }
+    .callout-blue .callout-title { color: var(--accent-blue-light); }
+    .callout-red { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25); }
+    .callout-red .callout-title { color: var(--accent-red); }
+
+    /* Architecture Visual Diagram */
+    .arch-diagram {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      overflow-x: auto;
+    }
+
+    /* Files Table */
+    .file-table {
+      width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;
+      background: var(--bg-card); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color);
+    }
+    .file-table th, .file-table td { padding: 10px 14px; text-align: left; font-size: 0.82rem; border-bottom: 1px solid var(--border-color); }
+    .file-table th { background: var(--code-bg); color: var(--accent-purple-light); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+    .file-table td code { font-family: 'Fira Code', monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; color: var(--accent-cyan); font-size: 0.78rem; }
+    .badge-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .badge-completed { background: rgba(16, 185, 129, 0.15); color: var(--accent-green-light); border: 1px solid var(--accent-green); }
+    .badge-todo { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+
+    /* Code Blocks */
+    .code-block-container { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+    .code-header { background: var(--bg-card); padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
+    .code-lang-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 0.5px; }
+    .copy-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; transition: var(--transition-smooth); }
+    .copy-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    pre.code-content { padding: 14px; font-family: 'Fira Code', monospace; font-size: 0.8rem; line-height: 1.5; color: #e2e8f0; overflow-x: auto; white-space: pre-wrap; }
+
+    /* OS Tabs */
+    .os-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .os-tab-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: var(--transition-smooth); }
+    .os-tab-btn.active { background: var(--accent-purple); color: white; border-color: var(--accent-purple); }
+    .os-content { display: none; }
+    .os-content.active { display: block; }
+
+    /* Checklist & Observation Cards */
+    .task-checklist { list-style: none; margin-bottom: 1.5rem; }
+    .task-checkbox-container { display: flex; align-items: flex-start; gap: 12px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: var(--transition-smooth); }
+    .task-checkbox-container:hover { background: var(--bg-card-hover); }
+    .task-checkbox-container.checked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+    .custom-checkbox { width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: var(--transition-smooth); }
+    .task-checkbox-container.checked .custom-checkbox { background: var(--accent-green); border-color: var(--accent-green); }
+    .check-mark { width: 12px; height: 12px; fill: white; display: none; }
+    .task-checkbox-container.checked .check-mark { display: block; }
+    .task-content { display: flex; flex-direction: column; gap: 2px; }
+    .task-label { font-size: 0.84rem; font-weight: 600; color: var(--text-primary); }
+    .task-desc { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }
+
+    .obs-card {
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px;
+      padding: 1rem 1.25rem; margin-bottom: 0.85rem; transition: var(--transition-smooth);
+    }
+    .obs-card:hover { border-color: var(--accent-purple-light); }
+    .obs-q-number { font-size: 0.7rem; font-weight: 700; color: var(--accent-purple-light); text-transform: uppercase; margin-bottom: 0.2rem; }
+    .obs-q-text { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+
+    /* Footer Buttons */
+    footer.nav-bar {
+      position: fixed; bottom: 0; left: var(--sidebar-width); right: 0; height: var(--header-height);
+      background: var(--bg-secondary); border-top: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 2.5rem; z-index: 90;
+    }
+    .btn-nav { padding: 8px 18px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none; transition: var(--transition-smooth); }
+    .btn-prev { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-prev:hover { background: var(--bg-card-hover); }
+    .btn-next { background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan)); color: white; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); }
+    .btn-next:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">L6</div>
+      <div>
+        <div class="brand-title">Lab 6 Challenge: Security Governance & Observability Callbacks</div>
+        <div class="brand-subtitle">Google ADK V2 • CME Hybrid Exchange Support Agent</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span class="progress-percent" id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Challenge Modules</div>
+      <ul class="step-list" id="stepsList">
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">1</span>
+          <div class="step-info">
+            <span class="step-title">Overview & Pipeline</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(1)">
+          <span class="step-number">2</span>
+          <div class="step-info">
+            <span class="step-title">Provided Files & Setup</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(2)">
+          <span class="step-number">3</span>
+          <div class="step-info">
+            <span class="step-title">Student TODOs Walkthrough</span>
+            <span class="step-duration">25 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(3)">
+          <span class="step-number">4</span>
+          <div class="step-info">
+            <span class="step-title">Service Verification & Testing</span>
+            <span class="step-duration">15 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(4)">
+          <span class="step-number">5</span>
+          <div class="step-info">
+            <span class="step-title">Observation & Reflection</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(5)">
+          <span class="step-number">6</span>
+          <div class="step-info">
+            <span class="step-title">Success Criteria & Takeaway</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Panels -->
+    <main class="content-area">
+
+      <!-- STEP 0: OVERVIEW & PIPELINE -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Lab 6 Challenge: Security Governance & Observability Callbacks</h1>
+        <p class="subtitle">Implement enterprise security guardrails, Pydantic input validation, and execution latency logging using Google ADK V2 tool callbacks.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🎯 Challenge Objective</div>
+          <div class="callout-content">
+            In this student challenge, you will implement <code>before_tool_callback</code> and <code>after_tool_callback</code> functions to govern and monitor tool executions across a hybrid CME Exchange Support Agent.
+            <br><br>
+            <b>Learning Focus:</b>
+            <ul style="margin-left: 18px; margin-top: 6px;">
+              <li><b>Before Tool Callback:</b> Record start time, validate inputs with Pydantic, enforce <code>SELECT</code>-only SQL query policies, and restrict queries to the <code>EXCHANGE_PRODUCTS</code> table.</li>
+              <li><b>After Tool Callback:</b> Read start time from workflow state, compute latency in milliseconds, log structured metrics, and store observability state.</li>
+              <li><b>Agent Wiring:</b> Import and register both callbacks across your specialist agents.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h2>Callback Interceptor Flow</h2>
+        <div class="arch-diagram">
+<pre style="margin: 0; background: transparent; border: none; padding: 0;">
+             User Request
+                  │
+                  ▼
+          Request Classifier & Router
+                  │
+                  ▼
+         Specialist Support Agent
+                  │
+                  ▼
+       ┌────────────────────────┐
+       │  before_tool_callback  │ ◄── 1. Record Start Time
+       └──────────┬─────────────┘ ◄── 2. Pydantic Input Validation
+                  │               ◄── 3. Enforce SELECT-only & Table Guardrails
+                  ▼
+         [ Tool Execution ] (MCP / BigQuery)
+                  │
+                  ▼
+       ┌────────────────────────┐
+       │  after_tool_callback   │ ◄── 1. Read Start Time & Calculate Duration (ms)
+       └──────────┬─────────────┘ ◄── 2. Log Structured Execution Metrics
+                  │               ◄── 3. Update Observability State
+                  ▼
+            Final Response
+</pre>
+        </div>
+
+        <div class="callout callout-cyan">
+          <div class="callout-title">💡 Middleware Interceptor Pattern</div>
+          <div class="callout-content">
+            Tool callbacks act as lightweight middleware interceptors. Returning a dictionary with <code>status: "BLOCKED"</code> from <code>before_tool_callback</code> immediately halts tool execution and returns a structured error to the agent, protecting enterprise databases from unauthorized or malicious SQL statements!
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 1: PROVIDED FILES & SETUP -->
+      <section class="content-panel" id="panel-1">
+        <h1>Starter Files & Environment Setup</h1>
+        <p class="subtitle">Review the project structure inside <code>lab6_callback_agents/student_challenge/exchange_agent</code>.</p>
+
+        <h2>Files Provided to Students</h2>
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th>File Path</th>
+              <th>Role & Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>exchange_api/app.py</code></td>
+              <td>FastAPI REST service exposing CME exchange details (Port 8001).</td>
+              <td><span class="badge-status badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><code>exchange_mcp/server.py</code></td>
+              <td>FastMCP Server exposing <code>get_exchange_details</code> tool on port 8002 at <code>/mcp</code>.</td>
+              <td><span class="badge-status badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><code>tools/bigquery_tools.py</code></td>
+              <td>GCP auth & read-only <code>BigQueryToolset</code> configuration.</td>
+              <td><span class="badge-status badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><code>tools/tools.py</code></td>
+              <td>Streamable HTTP <code>McpToolset</code> connection setup (Port 8002).</td>
+              <td><span class="badge-status badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><code>callbacks/callback_tools.py</code></td>
+              <td>Callback implementations containing <b>TODO 1 through TODO 7</b>.</td>
+              <td><span class="badge-status badge-todo">Student TODO</span></td>
+            </tr>
+            <tr>
+              <td><code>app/agent.py</code></td>
+              <td>Classifier, Router, Specialist Agents, and Workflow containing <b>Agent TODOs 1-3</b>.</td>
+              <td><span class="badge-status badge-todo">Student TODO</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Pre-Lab Environment Setup</h2>
+        <div class="callout callout-amber">
+          <div class="callout-title">⚠️ Service Launch Requirements</div>
+          <div class="callout-content">
+            Launch <b>Terminal 1 (REST API)</b> and <b>Terminal 2 (MCP Server)</b> so they run continuously in the background before launching ADK Web.
+          </div>
+        </div>
+
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" onclick="switchOsTab('bash')">🐧 Linux / macOS / Git Bash</button>
+          <button class="os-tab-btn" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <div class="os-content active" data-os="bash">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Terminal Setup - Bash / Git Bash</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># ============================================================
+# TERMINAL 1: Launch FastAPI REST API (Port 8001)
+# ============================================================
+# For Git Bash (Windows): source lab1_getting_started/venv/Scripts/activate
+# For Linux/macOS: source lab1_getting_started/venv/bin/activate
+source lab1_getting_started/venv/Scripts/activate
+pip install -r lab6_callback_agents/requirements.txt
+python -m uvicorn lab6_callback_agents.student_challenge.exchange_api.app:app --host 127.0.0.1 --port 8001
+
+# ============================================================
+# TERMINAL 2: Launch Exchange MCP Server (Port 8002)
+# ============================================================
+# Open a 2nd terminal window/tab:
+source lab1_getting_started/venv/Scripts/activate
+python -m lab6_callback_agents.student_challenge.exchange_mcp.server
+
+# ============================================================
+# TERMINAL 3: Launch ADK Web UI (After completing TODOs)
+# ============================================================
+# Open a 3rd terminal window/tab:
+source lab1_getting_started/venv/Scripts/activate
+adk web --port 8000 lab6_callback_agents/student_challenge/exchange_agent</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Terminal Setup - PowerShell</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># ============================================================
+# TERMINAL 1: Launch FastAPI REST API (Port 8001)
+# ============================================================
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+pip install -r lab6_callback_agents/requirements.txt
+python -m uvicorn lab6_callback_agents.student_challenge.exchange_api.app:app --host 127.0.0.1 --port 8001
+
+# ============================================================
+# TERMINAL 2: Launch Exchange MCP Server (Port 8002)
+# ============================================================
+# Open a 2nd terminal window/tab:
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+python -m lab6_callback_agents.student_challenge.exchange_mcp.server
+
+# ============================================================
+# TERMINAL 3: Launch ADK Web UI (After completing TODOs)
+# ============================================================
+# Open a 3rd terminal window/tab:
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+adk web --port 8000 lab6_callback_agents/student_challenge/exchange_agent</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: STUDENT TODOs WALKTHROUGH -->
+      <section class="content-panel" id="panel-2">
+        <h1>Student TODOs Walkthrough</h1>
+        <p class="subtitle">Complete the TODO tasks inside <code>callbacks/callback_tools.py</code> and <code>app/agent.py</code>.</p>
+
+        <div class="callout callout-red">
+          <div class="callout-title">🚫 Strict Challenge Constraints</div>
+          <div class="callout-content">
+            Do <b>NOT</b> modify the REST API, MCP Server, BigQuery Toolset, Request Classifier, Router, or Workflow edges.
+            Your task is strictly focused on completing the callback interceptors and registering them with your agents.
+          </div>
+        </div>
+
+        <h2>Part A: Callbacks Implementation (<code>callbacks/callback_tools.py</code>)</h2>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">File: callbacks/callback_tools.py (TODOs 1-4: before_tool_callback)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>def before_tool_callback(
+    tool: Any,
+    args: Dict[str, Any],
+    tool_context: Context,
+) -> Optional[Dict[str, Any]]:
+
+    tool_name = getattr(tool, "name", str(tool))
+    print(f"\n[BEFORE TOOL] {tool_name}")
+
+    # TODO 1: Store start time in state using time.perf_counter()
+    # Key: "tool_start_time"
+    ______________________________
+
+    # Validate BigQuery execute_sql input
+    if tool_name == "execute_sql":
+
+        # TODO 2: Validate args using Pydantic model SQLToolInput.model_validate(...)
+        try:
+            ______________________________
+            print("[PYDANTIC] Input valid")
+        except ValidationError as error:
+            return {"status": "BLOCKED", "error": f"Invalid input: {error}"}
+
+        sql = args.get("query", "").upper()
+
+        # TODO 3: Check if query starts with SELECT. Block if it does NOT start with SELECT!
+        if ______________________________:
+            return {"status": "BLOCKED", "error": "Only SELECT queries are allowed."}
+
+        # TODO 4: Restrict query to ALLOWED_TABLE ("EXCHANGE_PRODUCTS"). Block if table not in sql!
+        if ______________________________:
+            return {"status": "BLOCKED", "error": "Only exchange_products table is allowed."}
+
+    return None</code></pre>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">File: callbacks/callback_tools.py (TODOs 5-7: after_tool_callback)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>def after_tool_callback(
+    tool: Any,
+    args: Dict[str, Any],
+    tool_context: Context,
+    tool_response: Any,
+) -> Optional[Dict[str, Any]]:
+
+    tool_name = getattr(tool, "name", str(tool))
+
+    # TODO 5: Read "tool_start_time" from tool_context.state
+    start_time = ______________________________
+
+    # TODO 6: Calculate duration in milliseconds: (current_time - start_time) * 1000
+    duration_ms = ______________________________
+
+    # TODO 7: Log successful completion using logger.info(...)
+    ______________________________
+
+    tool_context.state["last_tool"] = tool_name
+    tool_context.state["last_tool_duration_ms"] = duration_ms
+    tool_context.state["last_tool_success"] = True
+
+    return None</code></pre>
+        </div>
+
+        <div class="callout callout-blue">
+          <div class="callout-title">🔍 Hints for Callback TODOs</div>
+          <div class="callout-content">
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li><b>TODO 1:</b> <code>tool_context.state["tool_start_time"] = time.perf_counter()</code></li>
+              <li><b>TODO 2:</b> <code>SQLToolInput.model_validate(args)</code></li>
+              <li><b>TODO 3:</b> <code>not sql.startswith("SELECT")</code></li>
+              <li><b>TODO 4:</b> <code>ALLOWED_TABLE not in sql</code></li>
+              <li><b>TODO 5:</b> <code>tool_context.state.get("tool_start_time", time.perf_counter())</code></li>
+              <li><b>TODO 6:</b> <code>(time.perf_counter() - start_time) * 1000</code></li>
+              <li><b>TODO 7:</b> <code>logger.info(f"Tool {tool_name} completed in {duration_ms:.2f} ms")</code></li>
+            </ul>
+          </div>
+        </div>
+
+        <h2>Part B: Agent Callback Registration (<code>app/agent.py</code>)</h2>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">File: app/agent.py (Agent TODOs 1-3)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code># TODO 1: Import before_tool_callback and after_tool_callback from .callbacks.callback_tools
+from .callbacks.callback_tools import ____________________________________
+
+# TODO 2: Register callbacks on exchange_info_agent
+exchange_info_agent = Agent(
+    name="exchange_info_agent",
+    model=MODEL,
+    instruction="...",
+    tools=[exchange_mcp_toolset],
+    before_tool_callback=____________________________________,
+    after_tool_callback=____________________________________,
+)
+
+# TODO 3: Register callbacks on product_info_agent
+product_info_agent = Agent(
+    name="product_info_agent",
+    model=MODEL,
+    instruction="...",
+    tools=[bigquery_toolset],
+    before_tool_callback=____________________________________,
+    after_tool_callback=____________________________________,
+)</code></pre>
+        </div>
+      </section>
+
+      <!-- STEP 3: SERVICE VERIFICATION & TESTING -->
+      <section class="content-panel" id="panel-3">
+        <h1>Service Verification & Agent Testing</h1>
+        <p class="subtitle">Launch ADK Web UI and run test prompts to verify callback interception, security guardrails, and latency logging.</p>
+
+        <h2>Pre-Flight Verification Checklist</h2>
+        <div class="callout callout-green">
+          <div class="callout-title">✅ Service Health Check</div>
+          <div class="callout-content">
+            <ol style="margin-left: 18px; margin-top: 4px; line-height: 1.7;">
+              <li><b>REST API:</b> Check <code>http://127.0.0.1:8001/health</code> → <code>{"status": "UP"}</code>.</li>
+              <li><b>MCP Server:</b> Check Terminal 2 for listening status on <code>http://127.0.0.1:8002/mcp</code>.</li>
+              <li><b>ADK Web:</b> Run <code>adk web --port 8000 lab6_callback_agents/student_challenge/exchange_agent</code> in Terminal 3.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h2>Test Your Agent (ADK Web UI)</h2>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🧪 TEST 1 — Valid Exchange Info (MCP Path with Callbacks)</div>
+          <div class="callout-content">
+            <b>Prompt:</b> <code>"Tell me about NYMEX."</code><br>
+            <b>Expected Behavior:</b>
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li>Classifier routes to <code>EXCHANGE_INFO</code>.</li>
+              <li><code>before_tool_callback</code> fires, logs <code>[BEFORE TOOL] get_exchange_details</code>, records start time.</li>
+              <li>MCP tool executes successfully via REST API.</li>
+              <li><code>after_tool_callback</code> fires, logs <code>[AFTER TOOL] completed in X.XX ms</code>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout-cyan">
+          <div class="callout-title">🧪 TEST 2 — Valid Product Info (BigQuery Path with Callbacks)</div>
+          <div class="callout-content">
+            <b>Prompt:</b> <code>"Which products belong to COMEX?"</code><br>
+            <b>Expected Behavior:</b>
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li>Classifier routes to <code>PRODUCT_INFO</code>.</li>
+              <li><code>before_tool_callback</code> fires for <code>execute_sql</code>, validates Pydantic model, confirms <code>SELECT</code> and table <code>EXCHANGE_PRODUCTS</code>.</li>
+              <li>BigQuery tool executes SQL query.</li>
+              <li><code>after_tool_callback</code> logs execution duration in milliseconds.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout-red">
+          <div class="callout-title">🛡️ TEST 3 — Security Guardrail Test (Non-SELECT Blocked)</div>
+          <div class="callout-content">
+            <b>Prompt (Malicious Input Test):</b> <code>"DROP TABLE EXCHANGE_PRODUCTS"</code> or <code>"DELETE FROM EXCHANGE_PRODUCTS"</code><br>
+            <b>Expected Behavior:</b>
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li><code>before_tool_callback</code> intercepts tool execution.</li>
+              <li>Checks SQL text and detects non-SELECT query.</li>
+              <li>Returns <code>{"status": "BLOCKED", "error": "Only SELECT queries are allowed."}</code>.</li>
+              <li>Tool execution is <b>prevented</b>; agent informs user of security policy block!</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout-amber">
+          <div class="callout-title">🛡️ TEST 4 — Security Guardrail Test (Unauthorized Table Blocked)</div>
+          <div class="callout-content">
+            <b>Prompt (Unauthorized Table Test):</b> <code>"SELECT * FROM USER_CREDENTIALS"</code><br>
+            <b>Expected Behavior:</b>
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li><code>before_tool_callback</code> intercepts tool execution.</li>
+              <li>Detects that <code>EXCHANGE_PRODUCTS</code> table is missing from SQL text.</li>
+              <li>Returns <code>{"status": "BLOCKED", "error": "Only exchange_products table is allowed."}</code>.</li>
+              <li>Database execution is <b>prevented</b> safely.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 4: OBSERVATION & REFLECTION -->
+      <section class="content-panel" id="panel-4">
+        <h1>Student Observation & Reflection Questions</h1>
+        <p class="subtitle">Deepen your understanding of callback governance by reflecting on these key architectural questions.</p>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 1</div>
+          <div class="obs-q-text">What happens when <code>before_tool_callback</code> returns a dictionary with <code>status: "BLOCKED"</code> instead of <code>None</code>?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 2</div>
+          <div class="obs-q-text">Why is Pydantic validation performed inside <code>before_tool_callback</code> rather than relying solely on the LLM to format tool arguments?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 3</div>
+          <div class="obs-q-text">How does storing <code>tool_start_time</code> in <code>tool_context.state</code> enable precise latency tracking across async tool calls?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 4</div>
+          <div class="obs-q-text">What is the difference between returning a modified response from <code>after_tool_callback</code> versus returning <code>None</code>?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 5</div>
+          <div class="obs-q-text">Why should security guardrails (e.g. SELECT-only enforcement) be executed in code callbacks rather than relying purely on LLM system prompt instructions?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 6</div>
+          <div class="obs-q-text">What evidence in your terminal log confirms that <code>after_tool_callback</code> executed after a tool invocation?</div>
+        </div>
+      </section>
+
+      <!-- STEP 5: SUCCESS CRITERIA & TAKEAWAY -->
+      <section class="content-panel" id="panel-5">
+        <h1>Success Criteria & Key Takeaways</h1>
+        <p class="subtitle">Verify your challenge completion checklist and review key governance principles.</p>
+
+        <h2>Student Checklist</h2>
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's1')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">before_tool_callback stores tool_start_time in state</span>
+              <span class="task-desc">Uses time.perf_counter() in callback_tools.py.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's2')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Pydantic input validation implemented</span>
+              <span class="task-desc">Validates execute_sql args with SQLToolInput.model_validate().</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's3')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">SELECT-only guardrail enforced</span>
+              <span class="task-desc">Blocks queries that do not start with SELECT.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's4')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Table whitelist guardrail enforced</span>
+              <span class="task-desc">Blocks queries that do not target EXCHANGE_PRODUCTS.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's5')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">after_tool_callback latency logging implemented</span>
+              <span class="task-desc">Calculates duration in ms and logs completion.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's6')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Callbacks registered on exchange_info_agent & product_info_agent</span>
+              <span class="task-desc">Attached via before_tool_callback and after_tool_callback in app/agent.py.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's7')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Verified non-SELECT prompt is BLOCKED in ADK Web UI</span>
+              <span class="task-desc">Tested "DROP TABLE" prompt and confirmed security interceptor error.</span>
+            </div>
+          </li>
+        </ul>
+
+        <h2>Key Architectural Takeaways</h2>
+        <div class="callout callout-purple">
+          <div class="callout-title">📌 Governance & Observability Summary</div>
+          <div class="callout-content">
+            <b>1. Deterministic Security Interceptors:</b> System prompts are advisory, but code callbacks provide strict, deterministic security boundaries. Callbacks run in pure Python before tool execution occurs, making them un-bypassable by prompt injection.
+            <br><br>
+            <b>2. Enterprise Observability:</b> By combining <code>before_tool_callback</code> (start timestamping) and <code>after_tool_callback</code> (latency computation & state recording), enterprise agent systems gain full visibility into tool performance and reliability metrics.
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <footer class="nav-bar">
+    <button class="btn-nav btn-prev" id="btnPrev" onclick="prevStep()" disabled>← Previous</button>
+    <button class="btn-nav btn-next" id="btnNext" onclick="nextStep()">Next Step →</button>
+  </footer>
+
+  <!-- JavaScript Interactivity -->
+  <script>
+    let currentStep = 0;
+    const totalSteps = 6;
+
+    function updateStepUI() {
+      // Update Panels
+      document.querySelectorAll('.content-panel').forEach((panel, idx) => {
+        panel.classList.toggle('active', idx === currentStep);
+      });
+
+      // Update Sidebar
+      document.querySelectorAll('.step-item').forEach((item, idx) => {
+        item.classList.toggle('active', idx === currentStep);
+        if (idx < currentStep) item.classList.add('completed');
+        else item.classList.remove('completed');
+      });
+
+      // Update Buttons
+      document.getElementById('btnPrev').disabled = (currentStep === 0);
+      const btnNext = document.getElementById('btnNext');
+      if (currentStep === totalSteps - 1) {
+        btnNext.innerText = 'Finish Challenge 🎉';
+      } else {
+        btnNext.innerText = 'Next Step →';
+      }
+
+      // Update Progress Bar
+      const percent = Math.round(((currentStep + 1) / totalSteps) * 100);
+      document.getElementById('progressBar').style.width = percent + '%';
+      document.getElementById('progressPercent').innerText = percent + '%';
+    }
+
+    function goToStep(stepIdx) {
+      currentStep = stepIdx;
+      updateStepUI();
+    }
+
+    function nextStep() {
+      if (currentStep < totalSteps - 1) {
+        currentStep++;
+        updateStepUI();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 0) {
+        currentStep--;
+        updateStepUI();
+      }
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      document.getElementById('themeIcon').innerText = newTheme === 'dark' ? '🌙' : '☀️';
+    }
+
+    function switchOsTab(osName) {
+      document.querySelectorAll('.os-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('onclick').includes(osName));
+      });
+      document.querySelectorAll('.os-content').forEach(content => {
+        content.classList.toggle('active', content.getAttribute('data-os') === osName);
+      });
+    }
+
+    function toggleTask(elem, taskId) {
+      elem.classList.toggle('checked');
+    }
+
+    function copyCode(button) {
+      const pre = button.parentElement.nextElementSibling;
+      const codeText = pre.innerText;
+      navigator.clipboard.writeText(codeText).then(() => {
+        const originalText = button.innerText;
+        button.innerText = 'Copied!';
+        setTimeout(() => { button.innerText = originalText; }, 2000);
+      });
+    }
+
+    // Initialize UI
+    updateStepUI();
+  </script>
+</body>
+</html>
