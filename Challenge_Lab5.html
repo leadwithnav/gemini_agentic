@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 5 Challenge: Integrating Google ADK with MCP & BigQuery | CME Support Desk</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --bg-card: #19243b;
+      --bg-card-hover: #22304e;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-purple-light: #c084fc;
+      --accent-blue: #3b82f6;
+      --accent-blue-light: #60a5fa;
+      --accent-green: #10b981;
+      --accent-green-light: #34d399;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --border-color: #263554;
+      --code-bg: #070a12;
+      --sidebar-width: 320px;
+      --header-height: 70px;
+      --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.25);
+      --shadow-glow: 0 0 25px rgba(168, 85, 247, 0.2);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #9333ea;
+      --accent-purple-light: #a855f7;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #3b82f6;
+      --accent-green: #059669;
+      --accent-green-light: #10b981;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-cyan: #0891b2;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+      --shadow-subtle: 0 4px 15px rgba(0, 0, 0, 0.08);
+      --shadow-glow: 0 0 20px rgba(147, 51, 234, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      display: flex; flex-direction: column; height: 100vh;
+    }
+
+    /* Navbar */
+    .navbar {
+      height: var(--header-height);
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      color: #ffffff; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.1rem;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+    }
+    .brand-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.15rem; color: var(--text-primary); }
+    .brand-subtitle { font-size: 0.75rem; color: var(--text-secondary); }
+
+    .nav-actions { display: flex; align-items: center; gap: 1.25rem; }
+    .progress-bar-container { width: 140px; height: 8px; background-color: var(--border-color); border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan)); transition: width 0.3s ease; }
+    .progress-percent { font-size: 0.8rem; font-weight: 600; color: var(--accent-purple-light); }
+    .theme-toggle {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 500;
+      display: flex; align-items: center; gap: 6px; transition: var(--transition-smooth);
+    }
+    .theme-toggle:hover { background: var(--bg-card-hover); }
+
+    /* Layout Structure */
+    .main-wrapper { display: flex; flex: 1; margin-top: var(--header-height); height: calc(100vh - var(--header-height)); overflow: hidden; }
+    
+    /* Sidebar */
+    .sidebar { width: var(--sidebar-width); background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-heading { padding: 1.25rem 1.25rem 0.5rem 1.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .step-list { list-style: none; padding: 0 0.75rem 1.25rem 0.75rem; }
+    .step-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.85rem; border-radius: 10px; cursor: pointer; margin-bottom: 0.35rem; transition: var(--transition-smooth); border: 1px solid transparent; }
+    .step-item:hover { background-color: var(--bg-card-hover); }
+    .step-item.active { background-color: var(--bg-card); border-color: var(--accent-purple); box-shadow: var(--shadow-glow); }
+    .step-number { width: 26px; height: 26px; border-radius: 50%; background-color: var(--border-color); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+    .step-item.active .step-number { background-color: var(--accent-purple); color: white; }
+    .step-item.completed .step-number { background-color: var(--accent-green); color: white; }
+    .step-info { display: flex; flex-direction: column; }
+    .step-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+    .step-duration { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Content Area */
+    .content-area { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 2rem 2.5rem 6rem 2.5rem; }
+    .content-panel { display: none; max-width: 960px; margin: 0 auto; width: 100%; }
+    .content-panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 { font-family: 'Outfit', sans-serif; font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+    h2 { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 600; color: var(--accent-cyan); margin: 1.75rem 0 0.85rem 0; }
+    h3 { font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 600; color: var(--text-primary); margin: 1.25rem 0 0.5rem 0; }
+    .subtitle { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5; }
+
+    /* Cards & Callouts */
+    .callout { border-radius: 12px; padding: 1.15rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid transparent; }
+    .callout-title { font-weight: 700; font-size: 0.88rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
+    .callout-content { font-size: 0.83rem; color: var(--text-secondary); line-height: 1.6; }
+    .callout-purple { background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.25); }
+    .callout-purple .callout-title { color: var(--accent-purple-light); }
+    .callout-cyan { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.25); }
+    .callout-cyan .callout-title { color: var(--accent-cyan); }
+    .callout-amber { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); }
+    .callout-amber .callout-title { color: var(--accent-amber); }
+    .callout-green { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); }
+    .callout-green .callout-title { color: var(--accent-green-light); }
+    .callout-blue { background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); }
+    .callout-blue .callout-title { color: var(--accent-blue-light); }
+    .callout-red { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25); }
+    .callout-red .callout-title { color: var(--accent-red); }
+
+    /* Architecture Visual Diagram */
+    .arch-diagram {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      overflow-x: auto;
+    }
+
+    /* Files Table */
+    .file-table {
+      width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;
+      background: var(--bg-card); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color);
+    }
+    .file-table th, .file-table td { padding: 10px 14px; text-align: left; font-size: 0.82rem; border-bottom: 1px solid var(--border-color); }
+    .file-table th { background: var(--code-bg); color: var(--accent-purple-light); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+    .file-table td code { font-family: 'Fira Code', monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; color: var(--accent-cyan); font-size: 0.78rem; }
+    .badge-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .badge-completed { background: rgba(16, 185, 129, 0.15); color: var(--accent-green-light); border: 1px solid var(--accent-green); }
+    .badge-todo { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+
+    /* Code Blocks */
+    .code-block-container { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+    .code-header { background: var(--bg-card); padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
+    .code-lang-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 0.5px; }
+    .copy-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; transition: var(--transition-smooth); }
+    .copy-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    pre.code-content { padding: 14px; font-family: 'Fira Code', monospace; font-size: 0.8rem; line-height: 1.5; color: #e2e8f0; overflow-x: auto; white-space: pre-wrap; }
+
+    /* OS Tabs */
+    .os-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .os-tab-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: var(--transition-smooth); }
+    .os-tab-btn.active { background: var(--accent-purple); color: white; border-color: var(--accent-purple); }
+    .os-content { display: none; }
+    .os-content.active { display: block; }
+
+    /* Checklist & Observation Cards */
+    .task-checklist { list-style: none; margin-bottom: 1.5rem; }
+    .task-checkbox-container { display: flex; align-items: flex-start; gap: 12px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: var(--transition-smooth); }
+    .task-checkbox-container:hover { background: var(--bg-card-hover); }
+    .task-checkbox-container.checked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+    .custom-checkbox { width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: var(--transition-smooth); }
+    .task-checkbox-container.checked .custom-checkbox { background: var(--accent-green); border-color: var(--accent-green); }
+    .check-mark { width: 12px; height: 12px; fill: white; display: none; }
+    .task-checkbox-container.checked .check-mark { display: block; }
+    .task-content { display: flex; flex-direction: column; gap: 2px; }
+    .task-label { font-size: 0.84rem; font-weight: 600; color: var(--text-primary); }
+    .task-desc { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }
+
+    .obs-card {
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px;
+      padding: 1rem 1.25rem; margin-bottom: 0.85rem; transition: var(--transition-smooth);
+    }
+    .obs-card:hover { border-color: var(--accent-purple-light); }
+    .obs-q-number { font-size: 0.7rem; font-weight: 700; color: var(--accent-purple-light); text-transform: uppercase; margin-bottom: 0.2rem; }
+    .obs-q-text { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+
+    /* Footer Buttons */
+    footer.nav-bar {
+      position: fixed; bottom: 0; left: var(--sidebar-width); right: 0; height: var(--header-height);
+      background: var(--bg-secondary); border-top: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 2.5rem; z-index: 90;
+    }
+    .btn-nav { padding: 8px 18px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none; transition: var(--transition-smooth); }
+    .btn-prev { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-prev:hover { background: var(--bg-card-hover); }
+    .btn-next { background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan)); color: white; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); }
+    .btn-next:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">MCP</div>
+      <div>
+        <div class="brand-title">Lab 5 Challenge: Integrating Google ADK with MCP & BigQuery</div>
+        <div class="brand-subtitle">Google ADK V2 • CME Hybrid Exchange Support Agent</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span class="progress-percent" id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Challenge Modules</div>
+      <ul class="step-list" id="stepsList">
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">1</span>
+          <div class="step-info">
+            <span class="step-title">Overview & Architecture</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(1)">
+          <span class="step-number">2</span>
+          <div class="step-info">
+            <span class="step-title">Provided Files & Setup</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(2)">
+          <span class="step-number">3</span>
+          <div class="step-info">
+            <span class="step-title">Student TODOs Walkthrough</span>
+            <span class="step-duration">20 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(3)">
+          <span class="step-number">4</span>
+          <div class="step-info">
+            <span class="step-title">Service Verification & Testing</span>
+            <span class="step-duration">15 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(4)">
+          <span class="step-number">5</span>
+          <div class="step-info">
+            <span class="step-title">Observation & Reflection</span>
+            <span class="step-duration">10 mins</span>
+          </div>
+        </li>
+        <li class="step-item" onclick="goToStep(5)">
+          <span class="step-number">6</span>
+          <div class="step-info">
+            <span class="step-title">Success Criteria & Takeaway</span>
+            <span class="step-duration">5 mins</span>
+          </div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Panels -->
+    <main class="content-area">
+
+      <!-- STEP 0: OVERVIEW & ARCHITECTURE -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Lab 5 Challenge: Integrating Google ADK with MCP & BigQuery</h1>
+        <p class="subtitle">Build a <b>Hybrid CME Exchange Support Agent</b> using Model Context Protocol (MCP) for Exchange Information and Google BigQuery for Product Information.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🎯 Challenge Objective</div>
+          <div class="callout-content">
+            In this hands-on lab, you will configure Google ADK to talk to a remote <b>MCP Server</b> running over Streamable HTTP while simultaneously preserving a direct enterprise <b>BigQueryToolset</b> integration.
+            <br><br>
+            <b>Main New Learning Objective:</b> Complete the MCP client configuration in Google ADK. BigQuery integration is already fully completed in the starter code and does NOT require any student modifications.
+          </div>
+        </div>
+
+        <h2>System Architecture</h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          The system uses a Request Classifier and Router to direct incoming CME support requests down two distinct enterprise integration paths:
+        </p>
+
+        <div class="arch-diagram">
+<pre style="margin: 0; background: transparent; border: none; padding: 0;">
+                                  User
+                                   │
+                                   ▼
+                           Request Classifier
+                                   │
+                                   ▼
+                                 Router
+                                   │
+       ┌───────────────────────────┴───────────────────────────┐
+       ▼                                                       ▼
+ EXCHANGE_INFO                                           PRODUCT_INFO
+       │                                                       │
+       ▼                                                       ▼
+Exchange Info Agent                                     Product Info Agent
+       │                                                       │
+       ▼                                                       ▼
+   McpToolset                                           BigQueryToolset
+       │                                                       │
+       ▼                                                       ▼
+   MCP Server                                               BigQuery
+       │                                                       │
+       ▼                                                       ▼
+    REST API                                     cme_support.exchange_products
+</pre>
+        </div>
+
+        <div class="callout callout-cyan">
+          <div class="callout-title">💡 Architecture Key Principles</div>
+          <div class="callout-content">
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li><b>Exchange Info Agent:</b> Uses <code>McpToolset</code> to consume tools exposed by the remote MCP Server.</li>
+              <li><b>MCP Server:</b> Encapsulates the underlying FastAPI REST service, hiding REST endpoints and HTTP logic from Google ADK.</li>
+              <li><b>Product Info Agent:</b> Directly queries Google Cloud BigQuery analytical tables (<code>cme_support.exchange_products</code>) via ADK's native <code>BigQueryToolset</code>.</li>
+              <li><b>Student Scope:</b> You only need to complete the <b>MCP-related TODOs</b> in <code>tools.py</code> and <code>agent.py</code>.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 1: PROVIDED FILES & SETUP -->
+      <section class="content-panel" id="panel-1">
+        <h1>Starter Files & Environment Setup</h1>
+        <p class="subtitle">Review the provided project structure and start the required local services before completing your TODOs.</p>
+
+        <h2>Files Provided to Students</h2>
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th>File Path</th>
+              <th>Role & Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>exchange_api/data.py</code></td>
+              <td>Simulated exchange metadata (CME, CBOT, NYMEX, COMEX).</td>
+              <td><span class="badge-status badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><code>exchange_api/app.py</code></td>
+              <td>FastAPI REST service exposing <code>GET /exchanges/{exchange_code}</code>.</td>
+              <td><span class="badge-status badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><code>exchange_mcp/server.py</code></td>
+              <td>FastMCP Server exposing <code>get_exchange_details</code> tool on port 8002 at <code>/mcp</code>.</td>
+              <td><span class="badge-status badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><code>bigquery_tools.py</code></td>
+              <td>GCP auth & read-only <code>BigQueryToolset</code> configuration for <code>cme_support.exchange_products</code>.</td>
+              <td><span class="badge-status badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><code>tools.py</code></td>
+              <td>ADK MCP client toolset configuration containing <b>TODO 1</b> and <b>TODO 2</b>.</td>
+              <td><span class="badge-status badge-todo">Student TODO</span></td>
+            </tr>
+            <tr>
+              <td><code>agent.py</code></td>
+              <td>Classifier, Router, Exchange Info Agent, Product Info Agent, and Workflow containing <b>TODO 3</b>.</td>
+              <td><span class="badge-status badge-todo">Student TODO</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Pre-Lab Environment Setup</h2>
+        <div class="callout callout-amber">
+          <div class="callout-title">⚠️ Service Launch Requirements</div>
+          <div class="callout-content">
+            Before running ADK Web, you must activate your virtual environment and launch <b>Terminal 1 (REST API)</b> and <b>Terminal 2 (MCP Server)</b> so they remain running in the background.
+          </div>
+        </div>
+
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" onclick="switchOsTab('bash')">🐧 Linux / macOS / Git Bash</button>
+          <button class="os-tab-btn" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+        </div>
+
+        <div class="os-content active" data-os="bash">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Terminal Setup - Bash / Git Bash</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># ============================================================
+# TERMINAL 1: Launch FastAPI REST API (Port 8001)
+# ============================================================
+# For Git Bash (Windows): source lab1_getting_started/venv/Scripts/activate
+# For Linux/macOS: source lab1_getting_started/venv/bin/activate
+source lab1_getting_started/venv/Scripts/activate
+python -m uvicorn lab5_mcp_agents.student_challenge.exchange_api.app:app --host 127.0.0.1 --port 8001
+
+# ============================================================
+# TERMINAL 2: Launch Exchange MCP Server (Port 8002)
+# ============================================================
+# Open a 2nd terminal window/tab:
+source lab1_getting_started/venv/Scripts/activate
+python -m lab5_mcp_agents.student_challenge.exchange_mcp.server
+
+# ============================================================
+# TERMINAL 3: Launch ADK Web UI (After completing TODOs)
+# ============================================================
+# Open a 3rd terminal window/tab:
+source lab1_getting_started/venv/Scripts/activate
+adk web --port 8000 lab5_mcp_agents/student_challenge/exchange_agent</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Terminal Setup - PowerShell</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code># ============================================================
+# TERMINAL 1: Launch FastAPI REST API (Port 8001)
+# ============================================================
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+python -m uvicorn lab5_mcp_agents.student_challenge.exchange_api.app:app --host 127.0.0.1 --port 8001
+
+# ============================================================
+# TERMINAL 2: Launch Exchange MCP Server (Port 8002)
+# ============================================================
+# Open a 2nd terminal window/tab:
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+python -m lab5_mcp_agents.student_challenge.exchange_mcp.server
+
+# ============================================================
+# TERMINAL 3: Launch ADK Web UI (After completing TODOs)
+# ============================================================
+# Open a 3rd terminal window/tab:
+.\lab1_getting_started\venv\Scripts\Activate.ps1
+adk web --port 8000 lab5_mcp_agents/student_challenge/exchange_agent</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: STUDENT TODOs WALKTHROUGH -->
+      <section class="content-panel" id="panel-2">
+        <h1>Student TODOs Walkthrough</h1>
+        <p class="subtitle">Complete the three targeted MCP integration TODO sections across <code>tools.py</code> and <code>agent.py</code>.</p>
+
+        <div class="callout callout-red">
+          <div class="callout-title">🚫 Strict Boundary Constraint</div>
+          <div class="callout-content">
+            Do <b>NOT</b> modify:
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li>REST API implementation (<code>exchange_api/app.py</code>)</li>
+              <li>MCP server tool definitions (<code>exchange_mcp/server.py</code>)</li>
+              <li>BigQuery toolset configuration (<code>bigquery_tools.py</code>)</li>
+              <li>Product Info Agent, Request Classifier, Router, or Workflow edges in <code>agent.py</code></li>
+            </ul>
+            Your task is strictly focused on connecting Google ADK to the remote MCP Server.
+          </div>
+        </div>
+
+        <h2>TODO 1 — Configure the MCP Connection</h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+          Open <code>lab5_mcp_agents/student_challenge/exchange_agent/tools.py</code> and locate <b>TODO 1</b>.
+        </p>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">File: exchange_agent/tools.py (TODO 1 & 2)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code>from google.adk.tools.mcp_tool import (
+    McpToolset,
+    StreamableHTTPConnectionParams,
+)
+
+# ============================================================
+# 1. CONFIGURE MCP CONNECTION
+# ============================================================
+
+# TODO 1:
+# Configure Streamable HTTP connection to the Exchange MCP Server.
+# Inspect exchange_mcp/server.py to determine:
+# - Protocol (http)
+# - Host (127.0.0.1)
+# - Port (8002)
+# - MCP endpoint path (/mcp)
+
+mcp_connection_params = StreamableHTTPConnectionParams(
+    url=____________________________________  # <-- COMPLETE THIS URL
+)
+
+# ============================================================
+# 2. CREATE MCP TOOLSET
+# ============================================================
+
+# TODO 2:
+# Create an ADK McpToolset using the connection parameters defined above.
+# McpToolset exposes remote MCP tools to Google ADK.
+
+exchange_mcp_toolset = McpToolset(
+    connection_params=____________________________________  # <-- PASS CONNECTION PARAMS HERE
+)</code></pre>
+        </div>
+
+        <div class="callout callout-blue">
+          <div class="callout-title">🔍 Guidance for TODO 1 & TODO 2</div>
+          <div class="callout-content">
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li><b>TODO 1 Guidance:</b> Inspect <code>exchange_mcp/server.py</code> lines 101–106 to verify host, port, transport type, and endpoint path. Construct the full HTTP URL string as the <code>url</code> parameter.</li>
+              <li><b>TODO 2 Guidance:</b> Instantiate <code>McpToolset</code> by passing the <code>mcp_connection_params</code> object created in TODO 1 into its <code>connection_params</code> argument.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h2>TODO 3 — Register the MCP Toolset with Exchange Agent</h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+          Open <code>lab5_mcp_agents/student_challenge/exchange_agent/agent.py</code> and locate <b>TODO 3</b>.
+        </p>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">File: exchange_agent/agent.py (TODO 3)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code># ============================================================
+# 4. EXCHANGE INFORMATION AGENT (MCP INTEGRATION)
+# ============================================================
+
+# TODO 3:
+# Register the MCP Toolset with the Exchange Information Agent.
+# Pass the toolset created in tools.py inside the tools list.
+
+exchange_info_agent = Agent(
+    name="exchange_info_agent",
+    model=MODEL,
+    instruction="""
+You are an expert on CME Group exchanges (CME, CBOT, NYMEX, COMEX).
+Answer questions about exchange names, locations, descriptions, and metadata.
+Use exchange tools to query exchange details.
+""",
+    tools=[____________________________________],  # <-- REGISTER MCP TOOLSET HERE
+)</code></pre>
+        </div>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">💡 Guidance for TODO 3</div>
+          <div class="callout-content">
+            Import <code>exchange_mcp_toolset</code> from <code>.tools</code> and register it inside the <code>tools=[...]</code> list parameter of <code>exchange_info_agent</code>. Notice that <code>product_info_agent</code> already uses <code>bigquery_toolset</code>—do not alter the product info agent!
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 3: SERVICE VERIFICATION & TESTING -->
+      <section class="content-panel" id="panel-3">
+        <h1>Service Verification & Agent Testing</h1>
+        <p class="subtitle">Verify all microservices are live before executing test queries in ADK Web UI.</p>
+
+        <h2>Pre-Flight Service Verification</h2>
+        <div class="callout callout-green">
+          <div class="callout-title">✅ Step-by-Step Health Check</div>
+          <div class="callout-content">
+            <ol style="margin-left: 18px; margin-top: 4px; line-height: 1.7;">
+              <li><b>Verify REST API:</b> Open your browser or curl `http://127.0.0.1:8001/health` and confirm response is <code>{"status": "UP"}</code>.</li>
+              <li><b>Inspect MCP Server Terminal:</b> Confirm Terminal 2 displays listening logs for Streamable HTTP on <code>http://127.0.0.1:8002/mcp</code>.</li>
+              <li><b>Launch ADK Web:</b> Run <code>adk web --port 8000 lab5_mcp_agents/student_challenge/exchange_agent</code> in Terminal 3.</li>
+            </ol>
+          </div>
+        </div>
+
+        <h2>Test Your Agent (ADK Web UI)</h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Run the following test prompts in ADK Web and inspect the execution traces across your terminals:
+        </p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🧪 TEST 1 — Exchange Information through MCP</div>
+          <div class="callout-content">
+            <b>Prompt:</b> <code>"Tell me about NYMEX."</code><br>
+            <b>Expected Execution Flow:</b>
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li>Classifier selects <code>EXCHANGE_INFO</code>.</li>
+              <li>Router routes to <code>Exchange Info Agent</code>.</li>
+              <li>Exchange Info Agent invokes remote MCP tool <code>get_exchange_details</code>.</li>
+              <li>MCP Server receives request on port 8002 and calls REST API on port 8001 (<code>GET /exchanges/NYMEX</code>).</li>
+              <li>Final output contains NYMEX name, location, and description.</li>
+            </ul>
+            <p style="margin-top: 6px; font-size: 0.78rem; color: var(--accent-cyan);">
+              🔍 <i>Check ADK Event Trace, MCP Server Terminal log, and REST API Terminal log to observe the full remote call flow!</i>
+            </p>
+          </div>
+        </div>
+
+        <div class="callout callout-cyan">
+          <div class="callout-title">🧪 TEST 2 — Product Information through BigQuery</div>
+          <div class="callout-content">
+            <b>Prompt:</b> <code>"Which products belong to COMEX?"</code><br>
+            <b>Expected Execution Flow:</b>
+            <ul style="margin-left: 18px; margin-top: 4px;">
+              <li>Classifier selects <code>PRODUCT_INFO</code>.</li>
+              <li>Router routes to <code>Product Info Agent</code>.</li>
+              <li>Product Info Agent invokes <code>BigQueryToolset</code> tools against <code>cme_support.exchange_products</code>.</li>
+              <li><b>No MCP tool</b> should be called for this request.</li>
+            </ul>
+            <p style="margin-top: 6px; font-size: 0.78rem; color: var(--accent-cyan);">
+              🔍 <i>Inspect ADK Trace to confirm direct BigQuery SQL execution without involving MCP or REST API terminals!</i>
+            </p>
+          </div>
+        </div>
+
+        <div class="callout callout-blue">
+          <div class="callout-title">🧪 TEST 3 & 4 — Secondary Route Verification</div>
+          <div class="callout-content">
+            <ul>
+              <li><b>TEST 3 (MCP Path):</b> <code>"Where is CBOT located?"</code> → Verifies <code>EXCHANGE_INFO</code> route via MCP.</li>
+              <li><b>TEST 4 (BigQuery Path):</b> <code>"List the products available on NYMEX."</code> → Verifies <code>PRODUCT_INFO</code> route via BigQuery.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout-amber">
+          <div class="callout-title">🧪 TEST 5 — Compare Integration Paths</div>
+          <div class="callout-content">
+            Run the following two prompts back-to-back and compare their ADK Event traces:
+            <br><br>
+            <b>Prompt A:</b> <code>"Tell me about COMEX."</code><br>
+            <b>Prompt B:</b> <code>"Which products belong to COMEX?"</code><br><br>
+            Observe how Prompt A flows <b>Agent → McpToolset → MCP Server → REST API</b>, whereas Prompt B flows <b>Agent → BigQueryToolset → BigQuery</b>.
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 4: OBSERVATION & REFLECTION -->
+      <section class="content-panel" id="panel-4">
+        <h1>Student Observation & Reflection Questions</h1>
+        <p class="subtitle">Deepen your understanding of enterprise agent architecture by reflecting on these conceptual questions.</p>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 1</div>
+          <div class="obs-q-text">Why does the Exchange Info Agent not call the REST API directly?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 2</div>
+          <div class="obs-q-text">What specific responsibility does the MCP Server own in this hybrid architecture?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 3</div>
+          <div class="obs-q-text">What does <code>McpToolset</code> provide to the Google ADK Agent during tool discovery and execution?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 4</div>
+          <div class="obs-q-text">Why is BigQuery accessed directly through <code>BigQueryToolset</code> rather than wrapped inside an MCP server in this lab?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 5</div>
+          <div class="obs-q-text">What changes would be required if the REST API endpoint URL changed, but the MCP tool schema remained identical?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 6</div>
+          <div class="obs-q-text">Which architectural layer actually knows about the REST API endpoint: ADK Agent, McpToolset, MCP Server, or BigQuery Agent?</div>
+        </div>
+
+        <div class="obs-card">
+          <div class="obs-q-number">Question 7</div>
+          <div class="obs-q-text">What specific evidence in the ADK Event Trace proves whether MCP or BigQuery was used for a given prompt?</div>
+        </div>
+      </section>
+
+      <!-- STEP 5: SUCCESS CRITERIA & TAKEAWAY -->
+      <section class="content-panel" id="panel-5">
+        <h1>Success Criteria & Key Takeaways</h1>
+        <p class="subtitle">Check off your completion criteria and review the core architectural principles learned in Lab 5.</p>
+
+        <h2>Student Checklist</h2>
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's1')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">REST API microservice starts cleanly on port 8001</span>
+              <span class="task-desc">GET /health responds with {"status": "UP"}.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's2')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">MCP Server starts cleanly on Streamable HTTP port 8002 (/mcp)</span>
+              <span class="task-desc">Server log displays listening notification.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's3')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">ADK Web UI starts cleanly on port 8000</span>
+              <span class="task-desc">No import errors in tools.py or agent.py.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's4')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">"Tell me about NYMEX" routes via MCP</span>
+              <span class="task-desc">Triggers get_exchange_details MCP tool call and REST API GET request.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's5')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">"Which products belong to COMEX?" routes via BigQuery</span>
+              <span class="task-desc">Executes BigQuery SQL query against cme_support.exchange_products without triggering MCP.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's6')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Exchange info is NOT queried from BigQuery</span>
+              <span class="task-desc">Strict routing separation verified.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's7')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Product info is NOT queried from MCP</span>
+              <span class="task-desc">Strict toolset scoping verified.</span>
+            </div>
+          </li>
+          <li class="task-checkbox-container" onclick="toggleTask(this, 's8')">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Can explain architectural difference between MCP and native toolsets</span>
+              <span class="task-desc">Understands integration boundary vs analytical database access.</span>
+            </div>
+          </li>
+        </ul>
+
+        <h2>Key Architectural Takeaways</h2>
+        <div class="callout callout-purple">
+          <div class="callout-title">📌 Summary: MCP as an Integration Boundary</div>
+          <div class="callout-content">
+            <b>1. Decoupled Tool Protocols:</b> Model Context Protocol (MCP) serves as a standardized integration boundary. ADK Agents operate strictly on high-level business tool definitions, while MCP Servers encapsulate backend infrastructure choices (REST APIs, HTTP endpoints, auth schemes).
+            <br><br>
+            <b>2. Hybrid Data Architectures:</b> Modern AI platforms combine standardized protocol integration (MCP for microservices and external tools) with native high-performance toolsets (ADK BigQueryToolset for enterprise data warehouses).
+            <br><br>
+            <b>3. Production Flow Summary:</b>
+            <br>
+            • <b>Exchange Information:</b> <code>Agent → McpToolset → MCP Server → REST API</code>
+            <br>
+            • <b>Product Information:</b> <code>Agent → BigQueryToolset → BigQuery</code>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <footer class="nav-bar">
+    <button class="btn-nav btn-prev" id="btnPrev" onclick="prevStep()" disabled>← Previous</button>
+    <button class="btn-nav btn-next" id="btnNext" onclick="nextStep()">Next Step →</button>
+  </footer>
+
+  <!-- JavaScript Interactivity -->
+  <script>
+    let currentStep = 0;
+    const totalSteps = 6;
+
+    function updateStepUI() {
+      // Update Panels
+      document.querySelectorAll('.content-panel').forEach((panel, idx) => {
+        panel.classList.toggle('active', idx === currentStep);
+      });
+
+      // Update Sidebar
+      document.querySelectorAll('.step-item').forEach((item, idx) => {
+        item.classList.toggle('active', idx === currentStep);
+        if (idx < currentStep) item.classList.add('completed');
+        else item.classList.remove('completed');
+      });
+
+      // Update Buttons
+      document.getElementById('btnPrev').disabled = (currentStep === 0);
+      const btnNext = document.getElementById('btnNext');
+      if (currentStep === totalSteps - 1) {
+        btnNext.innerText = 'Finish Challenge 🎉';
+      } else {
+        btnNext.innerText = 'Next Step →';
+      }
+
+      // Update Progress Bar
+      const percent = Math.round(((currentStep + 1) / totalSteps) * 100);
+      document.getElementById('progressBar').style.width = percent + '%';
+      document.getElementById('progressPercent').innerText = percent + '%';
+    }
+
+    function goToStep(stepIdx) {
+      currentStep = stepIdx;
+      updateStepUI();
+    }
+
+    function nextStep() {
+      if (currentStep < totalSteps - 1) {
+        currentStep++;
+        updateStepUI();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 0) {
+        currentStep--;
+        updateStepUI();
+      }
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      document.getElementById('themeIcon').innerText = newTheme === 'dark' ? '🌙' : '☀️';
+    }
+
+    function switchOsTab(osName) {
+      document.querySelectorAll('.os-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('onclick').includes(osName));
+      });
+      document.querySelectorAll('.os-content').forEach(content => {
+        content.classList.toggle('active', content.getAttribute('data-os') === osName);
+      });
+    }
+
+    function toggleTask(elem, taskId) {
+      elem.classList.toggle('checked');
+    }
+
+    function copyCode(button) {
+      const pre = button.parentElement.nextElementSibling;
+      const codeText = pre.innerText;
+      navigator.clipboard.writeText(codeText).then(() => {
+        const originalText = button.innerText;
+        button.innerText = 'Copied!';
+        setTimeout(() => { button.innerText = originalText; }, 2000);
+      });
+    }
+
+    // Initialize UI
+    updateStepUI();
+  </script>
+</body>
+</html>
