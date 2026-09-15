@@ -36,8 +36,7 @@ async def main():
     runner = Runner(
         agent=root_agent,
         app_name="demo",
-        session_service=session_service,
-         memory_service=memory_service,
+        session_service=session_service
     )
 
     message = types.Content(
