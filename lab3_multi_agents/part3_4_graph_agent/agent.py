@@ -48,7 +48,6 @@ def save_original_request(ctx: Context, node_input: str) -> str:
     """
 
     ctx.state["original_request"] = node_input
-    ctx.state["symbol"]="NQ"
 
     return node_input
 
@@ -251,8 +250,8 @@ root_agent = Workflow(
         # Preserve the original request first
         (
             "START",
-            product_support_agent,
-            market_status_support_agent,
+            save_original_request,
+            request_classifier,
             route_request,
         ),
 
