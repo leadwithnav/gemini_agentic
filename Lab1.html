@@ -872,7 +872,27 @@
       <!-- STEP 1: SETUP & DATASET -->
       <section class="content-panel" id="panel-1">
         <h1>Step 1: Setup & CME Market Dataset</h1>
-        <p class="subtitle">Initialize Python environment and inspect simulated training reference data.</p>
+        <p class="subtitle">Initialize Python environment, authenticate Google Cloud CLI, configure environment variables, and inspect simulated training reference data.</p>
+
+        <h2>Google Cloud Authentication</h2>
+        <div class="callout callout-purple">
+          <div class="callout-title">🔑 GCP Authentication Setup</div>
+          <div class="callout-content">
+            Authenticate your Google Cloud account and configure Application Default Credentials (ADC) for Google ADK and Gemini API access:
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Google Cloud CLI Authentication</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code><span class="token-comment"># 1. Authenticate your gcloud CLI user account</span>
+<span class="token-prompt">$</span> gcloud auth login
+
+<span class="token-comment"># 2. Authenticate Application Default Credentials (ADC) for Google GenAI SDK</span>
+<span class="token-prompt">$</span> gcloud auth application-default login</code></pre>
+        </div>
 
         <h2>Dependencies (`requirements.txt`)</h2>
         <div class="code-block-container">
@@ -883,6 +903,25 @@
           <pre class="code-content"><code>google-adk>=2.8.0
 google-genai>=1.0.0
 python-dotenv>=1.0.0</code></pre>
+        </div>
+
+        <h2>Environment Configuration (`.env`)</h2>
+        <div class="callout callout-blue">
+          <div class="callout-title">⚙️ Configure Environment Variables</div>
+          <div class="callout-content">
+            Rename <code>example.env</code> to <code>.env</code> in your project directory and update your Google Cloud Project ID:
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">.env</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code><span class="token-comment"># Google Gemini / Vertex AI Credentials & Project Configuration</span>
+GOOGLE_GENAI_USE_VERTEXAI=True
+GOOGLE_CLOUD_PROJECT=your_project_id
+GOOGLE_CLOUD_LOCATION=global</code></pre>
         </div>
 
         <div class="os-tab-bar">
@@ -897,10 +936,18 @@ python-dotenv>=1.0.0</code></pre>
               <span class="code-lang-badge">macOS Terminal (zsh/bash)</span>
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
             </div>
-            <pre class="code-content"><code><span class="token-prompt">$</span> cd lab1_getting_started
+            <pre class="code-content"><code><span class="token-comment"># 1. Authenticate Google Cloud CLI & ADC</span>
+<span class="token-prompt">$</span> gcloud auth login
+<span class="token-prompt">$</span> gcloud auth application-default login
+
+<span class="token-comment"># 2. Setup virtual environment & dependencies</span>
+<span class="token-prompt">$</span> cd lab1_getting_started
 <span class="token-prompt">$</span> python3 -m venv venv
 <span class="token-prompt">$</span> source venv/bin/activate
-<span class="token-prompt">$</span> pip install -r requirements.txt</code></pre>
+<span class="token-prompt">$</span> pip install -r requirements.txt
+
+<span class="token-comment"># 3. Rename example.env to .env and configure variables</span>
+<span class="token-prompt">$</span> cp example.env .env</code></pre>
           </div>
         </div>
 
@@ -910,10 +957,18 @@ python-dotenv>=1.0.0</code></pre>
               <span class="code-lang-badge">PowerShell</span>
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
             </div>
-            <pre class="code-content"><code><span class="token-prompt">PS></span> cd lab1_getting_started
+            <pre class="code-content"><code><span class="token-comment"># 1. Authenticate Google Cloud CLI & ADC</span>
+<span class="token-prompt">PS></span> gcloud auth login
+<span class="token-prompt">PS></span> gcloud auth application-default login
+
+<span class="token-comment"># 2. Setup virtual environment & dependencies</span>
+<span class="token-prompt">PS></span> cd lab1_getting_started
 <span class="token-prompt">PS></span> python -m venv venv
 <span class="token-prompt">PS></span> .\venv\Scripts\Activate.ps1
-<span class="token-prompt">PS></span> pip install -r requirements.txt</code></pre>
+<span class="token-prompt">PS></span> pip install -r requirements.txt
+
+<span class="token-comment"># 3. Rename example.env to .env and configure variables</span>
+<span class="token-prompt">PS></span> Copy-Item example.env .env</code></pre>
           </div>
         </div>
 
@@ -923,10 +978,18 @@ python-dotenv>=1.0.0</code></pre>
               <span class="code-lang-badge">Linux / Git Bash</span>
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
             </div>
-            <pre class="code-content"><code><span class="token-prompt">$</span> cd lab1_getting_started
+            <pre class="code-content"><code><span class="token-comment"># 1. Authenticate Google Cloud CLI & ADC</span>
+<span class="token-prompt">$</span> gcloud auth login
+<span class="token-prompt">$</span> gcloud auth application-default login
+
+<span class="token-comment"># 2. Setup virtual environment & dependencies</span>
+<span class="token-prompt">$</span> cd lab1_getting_started
 <span class="token-prompt">$</span> python3 -m venv venv
 <span class="token-prompt">$</span> source venv/bin/activate
-<span class="token-prompt">$</span> pip install -r requirements.txt</code></pre>
+<span class="token-prompt">$</span> pip install -r requirements.txt
+
+<span class="token-comment"># 3. Rename example.env to .env and configure variables</span>
+<span class="token-prompt">$</span> cp example.env .env</code></pre>
           </div>
         </div>
 
@@ -964,8 +1027,8 @@ python-dotenv>=1.0.0</code></pre>
           <li class="task-checkbox-container" data-task-id="t1_1" onclick="toggleTask(this)">
             <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
             <div class="task-content">
-              <span class="task-label">Set up virtual environment & install requirements</span>
-              <span class="task-desc">Run `pip install -r requirements.txt` to install google-adk, google-genai, and python-dotenv.</span>
+              <span class="task-label">Authenticate Google Cloud, set up virtual environment & configure `.env`</span>
+              <span class="task-desc">Run `gcloud auth` commands, install dependencies, rename `example.env` to `.env`, and update `GOOGLE_CLOUD_PROJECT`.</span>
             </div>
           </li>
         </ul>
