@@ -47,19 +47,6 @@ if not logger.handlers:
 
 
 # ============================================================
-# 1. PYDANTIC MODEL
-# Validate tool input
-# ============================================================
-
-class SQLToolInput(BaseModel):
-    query: str = Field(
-        ...,
-        min_length=1,
-        description="SQL query to execute"
-    )
-
-
-# ============================================================
 # SIMULATED PERMISSION DATA
 # Later this can be replaced with OPA / IAM / RBAC
 # ============================================================
@@ -79,16 +66,6 @@ ALLOWED_TABLES = {
     "PRODUCTS",
     "MARKET_STATUS",
     "INCIDENTS",
-}
-
-FORBIDDEN_OPERATIONS = {
-    "INSERT",
-    "UPDATE",
-    "DELETE",
-    "DROP",
-    "ALTER",
-    "TRUNCATE",
-    "MERGE",
 }
 
 
@@ -115,40 +92,13 @@ def record_start_time(tool_name: str, ctx: Context) -> None:
     ctx.state[f"tool_start_time:{tool_name}"] = time.perf_counter()
 
 
-def validate_input(tool_name: str, args: Dict[str, Any]) -> Optional[str]:
-    """
-    Step 1: Pydantic Input Validation.
-    Validates structural correctness of tool arguments.
-    """
-    args_dict = args or {}
-    print(f"[BEFORE TOOL] Arguments: {args_dict}", flush=True)
-
-    # Bypass Pydantic SQL validation for non-SQL tools
-    if tool_name != "execute_sql" and "sql" not in args_dict:
-        return None
-
-    try:
-        SQLToolInput.model_validate(args_dict)
-        print("[PYDANTIC] [OK] Input is valid", flush=True)
-        return None
-    except ValidationError as error:
-        print("[PYDANTIC] [FAIL] Invalid input", flush=True)
-        return f"Invalid tool input: {error}"
 
 
 def check_permission(tool_name: str, ctx: Context) -> Optional[str]:
-    """
-    Step 2: Permission Check.
-    Validates whether the user is authorized to execute the tool.
-    """
-    user_id = ctx.state.get("user_id", "alice")
+    user_id = ctx.state.get("user_id")
     user_authorized = AUTHORIZED_USERS.get(user_id, False)
-
     if not user_authorized:
-        print(f"[PERMISSION] [FAIL] User '{user_id}' is not authorized", flush=True)
         return f"User '{user_id}' is not authorized."
-
-    print(f"[PERMISSION] [OK] User '{user_id}' is authorized", flush=True)
     return None
 
 
@@ -157,54 +107,20 @@ def check_business_guardrails(
     args: Dict[str, Any],
     ctx: Context,
 ) -> Optional[str]:
-    """
-    Step 3: Business Guardrails.
-    Enforces business rules on tool execution (SELECT only, forbidden operations, approved tables, target project & dataset).
-    """
-    args_dict = args or {}
 
-    # Bypass guardrails for non-SQL tools
-    if tool_name != "execute_sql":
-        print("[BEFORE TOOL] [OK] ALL CHECKS PASSED", flush=True)
-        print("[BEFORE TOOL] -> Executing tool\n", flush=True)
-        return None
+    args_dict = args or {}
 
     sql = args_dict.get("query", "").strip()
     sql_upper = sql.upper()
 
     # Rule 1: Only SELECT queries are allowed
     if not sql_upper.startswith("SELECT"):
-        print("[GUARDRAIL] [FAIL] Only SELECT queries are allowed", flush=True)
         return "Only SELECT queries are allowed."
 
-    # Rule 2: Block mutation operations
-    for operation in FORBIDDEN_OPERATIONS:
-        if re.search(r"\b" + operation + r"\b", sql_upper):
-            print(
-                f"[GUARDRAIL] [FAIL] Forbidden operation: {operation}",
-                flush=True
-            )
-            return f"Operation '{operation}' is not allowed."
-
-    # Rule 3: Only approved tables can be queried
+    # Rule 2: Only approved tables can be queried
     if not any(table in sql_upper for table in ALLOWED_TABLES):
         print("[GUARDRAIL] [FAIL] Unauthorized table", flush=True)
         return f"Only these tables are allowed: {sorted(ALLOWED_TABLES)}"
-
-    # Rule 4: Query must target authorized project & dataset
-    expected_project = (ctx.state.get("project_id") or PROJECT_ID or "").strip().upper()
-    if expected_project and expected_project not in sql_upper:
-        print(f"[GUARDRAIL] [FAIL] Unauthorized project: '{expected_project}'", flush=True)
-        return f"Query does not target authorized project '{expected_project}'."
-
-    expected_dataset = (ctx.state.get("dataset_id") or DATASET_ID or "").strip().upper()
-    if expected_dataset and expected_dataset not in sql_upper:
-        print(f"[GUARDRAIL] [FAIL] Unauthorized dataset: '{expected_dataset}'", flush=True)
-        return f"Query does not target authorized dataset '{expected_dataset}'."
-
-    print("[GUARDRAIL] [OK] Operation is allowed", flush=True)
-    print("[BEFORE TOOL] [OK] ALL CHECKS PASSED", flush=True)
-    print("[BEFORE TOOL] -> Executing tool\n", flush=True)
 
     return None
 
@@ -223,19 +139,11 @@ def before_tool_callback(
 
     record_start_time(tool_name, tool_context)
 
-    validation_error = validate_input(tool_name, args)
-    if validation_error:
-        return block(validation_error)
-
     permission_error = check_permission(tool_name, tool_context)
     if permission_error:
         return block(permission_error)
 
-    guardrail_error = check_business_guardrails(
-        tool_name,
-        args,
-        tool_context
-    )
+    guardrail_error = check_business_guardrails(tool_name,args,tool_context)
     if guardrail_error:
         return block(guardrail_error)
 
@@ -256,9 +164,6 @@ def after_tool_callback(
     Runs after a tool executes successfully.
     """
     tool_name = getattr(tool, "name", str(tool))
-    request_id = tool_context.state.get("request_id", "unknown")
-    user_id = tool_context.state.get("user_id", "unknown")
-    route = tool_context.state.get("route", "unknown")
 
     # Latency calculation
     start_key = f"tool_start_time:{tool_name}"
@@ -266,30 +171,6 @@ def after_tool_callback(
     duration_ms = None
     if start_time:
         duration_ms = (time.perf_counter() - start_time) * 1000
-
-    # Log metrics
-    logger.info(
-        "tool_execution_completed",
-        extra={
-            "request_id": request_id,
-            "user_id": user_id,
-            "route": route,
-            "tool_name": tool_name,
-            "duration_ms": duration_ms,
-            "success": True,
-        },
-    )
-
-    if duration_ms is not None:
-        print(f"\n[AFTER TOOL] Tool '{tool_name}' completed in {duration_ms:.2f}ms", flush=True)
-    else:
-        print(f"\n[AFTER TOOL] Tool '{tool_name}' completed", flush=True)
-
-    print(f"[AFTER TOOL] Observability state: request_id={request_id}, user_id={user_id}, route={route}", flush=True)
-
-    # Store state
-    tool_context.state["last_tool"] = tool_name
-    tool_context.state["last_tool_success"] = True
     if duration_ms is not None:
         tool_context.state["last_tool_duration_ms"] = duration_ms
 

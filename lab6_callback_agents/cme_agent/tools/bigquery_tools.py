@@ -28,7 +28,6 @@ else:
     load_dotenv()
 
 # Configuration Constants
-MODEL = "gemini-2.5-flash"
 DATASET_ID = "cme_support"
 
 # Google Cloud Authentication & Project Resolution
