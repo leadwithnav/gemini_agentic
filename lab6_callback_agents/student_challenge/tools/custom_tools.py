@@ -1,115 +1,112 @@
 """
-BigQuery Tools Initialization & Authentication
+CME Exchange Information Assistant - Tools
 
-Used by the Product Information Agent.
-
-Responsibilities:
-- Load Google Cloud configuration
-- Resolve Project ID
-- Configure ADC credentials
-- Create read-only BigQueryToolset
+Provides deterministic Python tools for:
+1. Retrieving CME Group exchange information
+2. Listing products associated with an exchange
 """
 
-import os
-from pathlib import Path
 
-import google.auth
-from dotenv import load_dotenv
+# ============================================================
+# SIMULATED EXCHANGE DATA
+# ============================================================
 
-from google.adk.tools.bigquery import (
-    BigQueryCredentialsConfig,
-    BigQueryToolset,
-)
-
-from google.adk.tools.bigquery.config import (
-    BigQueryToolConfig,
-    WriteMode,
-)
+EXCHANGES = {
+    "CME": {
+        "name": "Chicago Mercantile Exchange",
+        "location": "Chicago",
+        "description": "Offers products across multiple asset classes."
+    },
+    "CBOT": {
+        "name": "Chicago Board of Trade",
+        "location": "Chicago",
+        "description": "Known for agricultural and financial products."
+    },
+    "NYMEX": {
+        "name": "New York Mercantile Exchange",
+        "location": "New York",
+        "description": "Known primarily for energy products."
+    },
+    "COMEX": {
+        "name": "Commodity Exchange",
+        "location": "New York",
+        "description": "Known primarily for metals products."
+    }
+}
 
 
 # ============================================================
-# 1. LOAD ENVIRONMENT CONFIGURATION
+# SIMULATED PRODUCT DATA
 # ============================================================
 
-PARENT_ENV = (
-    Path(__file__).resolve().parent.parent / ".env"
-)
-
-if PARENT_ENV.exists():
-    load_dotenv(dotenv_path=PARENT_ENV)
-else:
-    load_dotenv()
+PRODUCTS = {
+    "CME": ["ES", "NQ"],
+    "CBOT": ["ZC", "ZW"],
+    "NYMEX": ["CL", "NG"],
+    "COMEX": ["GC", "SI"]
+}
 
 
 # ============================================================
-# 2. CONFIGURATION
+# TOOL 1: GET EXCHANGE DETAILS
 # ============================================================
 
-MODEL = "gemini-2.5-flash"
+def get_exchange_details(exchange: str) -> dict:
+    """
+    Retrieve information about a CME Group exchange.
 
-DATASET_ID = "cme_support"
+    Use this tool when the user asks for details about an exchange,
+    such as its name, location, or description.
 
+    Args:
+        exchange: Exchange code such as CME, CBOT, NYMEX, or COMEX.
 
-# ============================================================
-# 3. GOOGLE CLOUD AUTHENTICATION
-# ============================================================
+    Returns:
+        A dictionary containing the exchange name, location,
+        and description. Returns an error if the exchange
+        is not supported.
+    """
 
-application_default_credentials, detected_project_id = (
-    google.auth.default()
-)
+    exchange = exchange.strip().upper()
 
+    if exchange not in EXCHANGES:
+        return {
+            "error": f"Exchange {exchange} not found"
+        }
 
-# ============================================================
-# 4. RESOLVE PROJECT ID
-# ============================================================
-
-PROJECT_ID = (
-    os.getenv("GOOGLE_CLOUD_PROJECT")
-    or os.getenv("GCLOUD_PROJECT")
-    or detected_project_id
-)
-
-
-if not PROJECT_ID:
-    raise RuntimeError(
-        "Unable to determine Google Cloud project ID.\n"
-        "Set GOOGLE_CLOUD_PROJECT or configure ADC correctly.\n\n"
-        "Example:\n"
-        "gcloud config set project <PROJECT_ID>\n"
-        "gcloud auth application-default login"
-    )
+    return {
+        "exchange": exchange,
+        **EXCHANGES[exchange]
+    }
 
 
 # ============================================================
-# 5. BIGQUERY CREDENTIAL CONFIG
+# TOOL 2: LIST PRODUCTS BY EXCHANGE
 # ============================================================
 
-credentials_config = BigQueryCredentialsConfig(
-    credentials=application_default_credentials
-)
+def list_products_by_exchange(exchange: str) -> dict:
+    """
+    List the simulated futures products associated with a CME Group exchange.
 
+    Use this tool when the user asks which products belong to,
+    are available on, or are associated with a particular exchange.
 
-# ============================================================
-# 6. READ-ONLY BIGQUERY CONFIGURATION
-# ============================================================
+    Args:
+        exchange: Exchange code such as CME, CBOT, NYMEX, or COMEX.
 
-tool_config = BigQueryToolConfig(
-    write_mode=WriteMode.BLOCKED
-)
+    Returns:
+        A dictionary containing the exchange code and its associated
+        product symbols. Returns an error if the exchange is not supported.
+    """
 
+    exchange = exchange.strip().upper()
 
-# ============================================================
-# 7. CREATE BIGQUERY TOOLSET
-# ============================================================
+    if exchange not in PRODUCTS:
+        return {
+            "error": f"Exchange {exchange} not found"
+        }
 
-bigquery_toolset = BigQueryToolset(
-
-    credentials_config=credentials_config,
-
-    bigquery_tool_config=tool_config,
-
-    tool_filter=[
-        "get_table_info",
-        "execute_sql",
-    ],
-)
+    return {
+        "exchange": exchange,
+        "products": PRODUCTS[exchange]
+    }
