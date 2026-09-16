@@ -1,10 +1,13 @@
 from google.adk import Agent
 from google.adk.tools import VertexAiSearchTool
 
-#TODO Add Relevant imports
 
-#TODO Configure your datastore
-DATA_STORE_ID = ()
+#TODO Configure your Corpus
+CORPUS_NAME = (" ")
+
+#TODO Create a Rag Client
+
+# TODO: Create a RAG Tool
 
 
 root_agent = Agent(
@@ -25,6 +28,6 @@ RULES:
 """,
 
     tools=[
-       #TODO: ADD vertex search tool
+       #TODO: ADD RAG Tool
     ],
 )

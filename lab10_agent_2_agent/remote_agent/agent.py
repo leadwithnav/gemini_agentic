@@ -1,6 +1,7 @@
 from google.adk import Agent
 from google.adk.a2a.utils.agent_to_a2a import to_a2a
 from dotenv import load_dotenv
+from .tools import get_market_status
 
 load_dotenv()
 
@@ -8,64 +9,46 @@ load_dotenv()
 MODEL = "gemini-2.5-flash"
 
 
-def get_company_policy(topic: str) -> str:
-
-    policies = {
-        "travel": (
-            "Employees may claim hotel expenses up to "
-            "$200 per night for approved business travel."
-        ),
-        "remote work": (
-            "Employees may work remotely up to "
-            "3 days per week with manager approval."
-        ),
-        "laptop": (
-            "Employees can request a new laptop through "
-            "the internal IT service desk."
-        ),
-        "parental leave": (
-            "Employees are eligible for 16 weeks "
-            "of parental leave."
-        ),
-    }
-
-    topic = topic.lower().strip()
-
-    for key, value in policies.items():
-
-        if key in topic:
-            return value
-
-    return "No policy was found for this topic."
-
+# ============================================================
+# MARKET AGENT
+# ============================================================
 
 root_agent = Agent(
 
-    name="knowledge_policy_agent",
+    name="market_agent",
 
     model=MODEL,
 
     description="""
-    Independent company policy advisor.
+    Independent CME Market specialist agent that provides
+    simulated market status information for CME products.
     """,
 
     instruction="""
-You are the Company Knowledge & Policy Agent.
+    You are a CME Market Support Agent.
 
-You answer questions about internal company policies.
+    Your responsibility is to answer questions about
+    simulated market status for CME products.
 
-Always use get_company_policy when answering policy questions.
+    AVAILABLE TOOL:
+    - get_market_status
 
-Do not invent policy information.
-
-Keep answers concise.
+    RULES:
+    - Always use get_market_status when market status is requested.
+    - Do not guess or invent market status.
+    - The market status is simulated training data, not live CME data.
+    - Keep answers clear and concise.
 """,
 
     tools=[
-        get_company_policy,
+        get_market_status,
     ],
 )
 
+
+# ============================================================
+# EXPOSE AGENT THROUGH A2A
+# ============================================================
 
 a2a_app = to_a2a(
     root_agent,

@@ -12,27 +12,29 @@ MODEL = "gemini-2.5-flash"
 
 
 # ============================================================
-# REMOTE A2A AGENT
+# REMOTE MARKET AGENT
 # ============================================================
 
-KNOWLEDGE_AGENT_URL = "http://localhost:8001"
+MARKET_AGENT_URL = "http://localhost:8001"
 
-KNOWLEDGE_AGENT_CARD_URL = (
-    f"{KNOWLEDGE_AGENT_URL}"
+MARKET_AGENT_CARD_URL = (
+    f"{MARKET_AGENT_URL}"
     f"{AGENT_CARD_WELL_KNOWN_PATH}"
 )
 
 
-remote_knowledge_agent = RemoteA2aAgent(
+remote_market_agent = RemoteA2aAgent(
 
-    name="remote_knowledge_agent",
+    name="remote_market_agent",
 
     description="""
-    Remote specialist agent that answers
-    company policy and employee-process questions.
+    Remote CME Market specialist agent.
+
+    Provides market-related information such as
+    market status and product market information.
     """,
 
-    agent_card=KNOWLEDGE_AGENT_CARD_URL,
+    agent_card=MARKET_AGENT_CARD_URL,
 )
 
 
@@ -40,50 +42,62 @@ remote_knowledge_agent = RemoteA2aAgent(
 # EXPOSE REMOTE AGENT AS TOOL
 # ============================================================
 
-knowledge_agent_tool = AgentTool(
-    agent=remote_knowledge_agent
+market_agent_tool = AgentTool(
+    agent=remote_market_agent
 )
 
 
 # ============================================================
-# MAIN AGENT
+# SUPERVISOR AGENT
 # ============================================================
 
 root_agent = Agent(
 
-    name="employee_assistant",
+    name="cme_support_supervisor",
 
     model=MODEL,
 
     description="""
-    General employee assistant.
+    Supervisor agent for CME support requests.
 
-    Delegates company policy questions
-    to a remote specialist through A2A.
+    Delegates market-related questions to a
+    remote Market Agent through A2A.
     """,
 
     instruction="""
-You are an Employee Assistant.
+    You are a CME Support Supervisor.
 
-For company policy or internal process questions,
-you MUST delegate to the remote Knowledge Policy Agent.
+    Your responsibility is to understand the user's request
+    and delegate market-related questions to the remote Market Agent.
 
-Examples:
+    DELEGATION:
 
-- What is the travel policy?
-- How many remote-work days are allowed?
-- How do I request a laptop?
-- What is the parental leave policy?
+    For questions about:
+    - current market status
+    - whether a product is trading
+    - market information
+    - market-related product questions
 
-Do not answer these questions yourself.
+    you MUST delegate to remote_market_agent.
 
-Use the remote_knowledge_agent tool.
+    Examples:
+    - Is NQ currently trading?
+    - What is the market status of ES?
+    - Is CL open or closed?
+    - Check the current market status for GC.
 
-For simple greetings or general conversation,
-you may answer directly.
+    Do not invent market information yourself.
+
+    Use the remote_market_agent for market-related factual information.
+
+    For greetings and general conversation,
+    you may answer directly.
+
+    After receiving the response from the Market Agent,
+    present the result clearly and concisely to the user.
 """,
 
     tools=[
-        knowledge_agent_tool,
+        market_agent_tool,
     ],
 )
