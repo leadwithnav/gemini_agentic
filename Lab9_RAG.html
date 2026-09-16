@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 9: RAG Corpus Creation & Vertex AI Grounding | CME Support Desk</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       1. CSS DESIGN TOKENS & RESPONSIVE THEME VARIABLES
+       ========================================================================== */
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --bg-card: #19243b;
+      --bg-card-hover: #22304e;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-purple-light: #c084fc;
+      --accent-blue: #3b82f6;
+      --accent-blue-light: #60a5fa;
+      --accent-green: #10b981;
+      --accent-green-light: #34d399;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+      --border-color: #263554;
+      --code-bg: #070a12;
+      --sidebar-width: 320px;
+      --header-height: 70px;
+      --footer-height: 65px;
+      --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 25px rgba(6, 182, 212, 0.25);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent-purple: #9333ea;
+      --accent-purple-light: #a855f7;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #3b82f6;
+      --accent-green: #059669;
+      --accent-green-light: #10b981;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-cyan: #0891b2;
+      --border-color: #e2e8f0;
+      --code-bg: #0f172a;
+      --shadow-subtle: 0 4px 15px rgba(0, 0, 0, 0.08);
+      --shadow-glow: 0 0 20px rgba(8, 145, 178, 0.15);
+    }
+
+    /* ==========================================================================
+       2. BASE & LAYOUT ARCHITECTURE
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Top Navbar */
+    .navbar {
+      height: var(--header-height);
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 1.15rem;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .progress-bar-container {
+      width: 180px;
+      height: 8px;
+      background-color: var(--bg-primary);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+
+    .progress-percent-badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      min-width: 42px;
+    }
+
+    .theme-toggle {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: var(--transition-smooth);
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    /* Main Content Wrapper */
+    .main-wrapper {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) 1fr;
+      margin-top: var(--header-height);
+      height: calc(100vh - var(--header-height));
+      overflow: hidden;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 1.25rem 0.75rem;
+    }
+
+    .sidebar-heading {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 0 0.75rem 0.75rem 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 0.75rem;
+    }
+
+    .step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 0.85rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+    }
+
+    .step-item:hover {
+      background-color: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .step-item.active {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.1));
+      color: var(--accent-cyan);
+      border-color: rgba(6, 182, 212, 0.3);
+      font-weight: 600;
+    }
+
+    .step-number {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-item.active .step-number {
+      background-color: var(--accent-cyan);
+      color: #ffffff;
+      border-color: var(--accent-cyan);
+    }
+
+    .step-item.completed .step-number {
+      background-color: var(--accent-green);
+      color: #ffffff;
+      border-color: var(--accent-green);
+    }
+
+    /* Main Scrollable Content Area */
+    .content-area {
+      overflow-y: auto;
+      padding: 2.25rem 3rem 6rem 3rem;
+      background-color: var(--bg-primary);
+      position: relative;
+    }
+
+    .content-panel {
+      display: none;
+      max-width: 980px;
+      margin: 0 auto;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .content-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+      line-height: 1.25;
+    }
+
+    p.subtitle {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.75rem;
+    }
+
+    h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin: 1.75rem 0 1rem 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.4rem;
+    }
+
+    p {
+      margin-bottom: 1.1rem;
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+    }
+
+    ul, ol {
+      margin-bottom: 1.25rem;
+      padding-left: 1.5rem;
+      color: var(--text-secondary);
+    }
+
+    li {
+      margin-bottom: 0.4rem;
+    }
+
+    code {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.88rem;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--accent-cyan);
+    }
+
+    /* Callout Cards */
+    .callout {
+      border-radius: 12px;
+      padding: 1.15rem 1.35rem;
+      margin: 1.35rem 0;
+      border: 1px solid transparent;
+      background-color: var(--bg-secondary);
+    }
+
+    .callout-cyan {
+      border-color: rgba(6, 182, 212, 0.4);
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(11, 15, 25, 0.4));
+    }
+
+    .callout-blue {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(11, 15, 25, 0.4));
+    }
+
+    .callout-purple {
+      border-color: rgba(168, 85, 247, 0.4);
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(11, 15, 25, 0.4));
+    }
+
+    .callout-amber {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(11, 15, 25, 0.4));
+    }
+
+    .callout-green {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(11, 15, 25, 0.4));
+    }
+
+    .callout-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .callout-cyan .callout-title { color: var(--accent-cyan); }
+    .callout-blue .callout-title { color: var(--accent-blue-light); }
+    .callout-purple .callout-title { color: var(--accent-purple-light); }
+    .callout-amber .callout-title { color: var(--accent-amber); }
+    .callout-green .callout-title { color: var(--accent-green-light); }
+
+    .callout-content {
+      font-size: 0.93rem;
+      color: var(--text-secondary);
+    }
+
+    /* Image Screenshots Frame */
+    .screenshot-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+      box-shadow: var(--shadow-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .screenshot-card img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .screenshot-caption {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* OS Switcher Tabs */
+    .os-tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .os-tab-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: var(--transition-smooth);
+    }
+
+    .os-tab-btn:hover {
+      color: var(--text-primary);
+      background-color: var(--bg-card-hover);
+    }
+
+    .os-tab-btn.active {
+      background-color: var(--accent-cyan);
+      color: #ffffff;
+      border-color: var(--accent-cyan);
+    }
+
+    .os-content {
+      display: none;
+    }
+
+    .os-content.active {
+      display: block;
+    }
+
+    /* Code Block & Syntax Highlighting */
+    .code-block-container {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1.25rem 0;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--bg-card);
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .code-lang-badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .copy-btn {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 0.25rem 0.65rem;
+      font-size: 0.725rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      transition: var(--transition-smooth);
+    }
+
+    .copy-btn:hover {
+      background-color: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      color: #ffffff;
+    }
+
+    pre.code-content {
+      padding: 1.15rem;
+      overflow-x: auto;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      color: #d4d4d4;
+      background-color: var(--code-bg);
+    }
+
+    .token-keyword   { color: #569cd6; font-weight: 600; }
+    .token-control   { color: #c586c0; font-weight: 600; }
+    .token-string    { color: #ce9178; }
+    .token-function  { color: #dcdcaa; }
+    .token-type      { color: #4ec9b0; }
+    .token-variable  { color: #9cdcfe; }
+    .token-number    { color: #b5cea8; }
+    .token-comment   { color: #6a9955; font-style: italic; }
+    .token-prompt    { color: #808080; user-select: none; }
+
+    /* Task Checklist */
+    .task-checklist {
+      list-style: none;
+      padding: 0;
+      margin: 1.5rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .task-checkbox-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 0.9rem 1.15rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .task-checkbox-container:hover {
+      border-color: var(--accent-cyan);
+      background-color: var(--bg-card-hover);
+    }
+
+    .custom-checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+      transition: var(--transition-smooth);
+    }
+
+    .task-checkbox-container.checked .custom-checkbox {
+      background-color: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+
+    .check-mark {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .task-checkbox-container.checked .check-mark {
+      opacity: 1;
+    }
+
+    .task-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .task-label {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+    }
+
+    .task-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 0.15rem;
+    }
+
+    /* Quiz Assessment Section */
+    .quiz-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz-question {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .quiz-option {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      transition: var(--transition-smooth);
+    }
+
+    .quiz-option:hover {
+      border-color: var(--accent-cyan);
+      color: var(--text-primary);
+    }
+
+    .quiz-option.correct {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: var(--accent-green);
+      color: var(--accent-green-light);
+      font-weight: 600;
+    }
+
+    .quiz-option.incorrect {
+      background-color: rgba(239, 68, 68, 0.15);
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+
+    /* Prompt Box styling */
+    .prompt-card {
+      background-color: var(--bg-secondary);
+      border: 1px dashed var(--accent-cyan);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+    }
+
+    .prompt-header {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-cyan);
+      margin-bottom: 0.4rem;
+    }
+
+    .prompt-text {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.92rem;
+      color: var(--text-primary);
+    }
+
+    /* Certificate Section */
+    .cert-canvas-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-top: 1.5rem;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .cert-input {
+      width: 100%;
+      max-width: 420px;
+      padding: 0.75rem 1.25rem;
+      background-color: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+      transition: var(--transition-smooth);
+    }
+
+    .cert-input:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .cert-actions {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn-cert {
+      padding: 0.65rem 1.35rem;
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      border: none;
+    }
+
+    .btn-download {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      color: #ffffff;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .btn-download:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-share {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-share:hover {
+      border-color: var(--accent-cyan);
+    }
+
+    #certCanvas {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      border: 2px solid var(--border-color);
+      box-shadow: var(--shadow-subtle);
+    }
+
+    /* Sticky Footer Navigation */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: var(--sidebar-width);
+      right: 0;
+      height: var(--footer-height);
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      z-index: 90;
+    }
+
+    .btn-nav {
+      padding: 0.55rem 1.25rem;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .btn-nav:hover:not(:disabled) {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .btn-next {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      color: #ffffff;
+      border: none;
+    }
+
+    .btn-next:hover:not(:disabled) {
+      opacity: 0.9;
+      color: #ffffff;
+    }
+
+    .btn-nav:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .footer-copyright {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">L9</div>
+      <div class="brand-text">
+        <div class="brand-title">Lab 9: RAG Engine Corpus Creation & Vertex AI Grounding</div>
+        <div class="brand-subtitle">Google ADK & Vertex AI Retrieval-Augmented Generation (RAG)</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <span class="progress-percent-badge" id="progressPercent">0%</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> Theme
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Wrapper Grid -->
+  <div class="main-wrapper">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Lab Modules</div>
+      <ul class="step-list" id="stepsList">
+        <li class="step-item active" onclick="goToStep(0)">
+          <span class="step-number">0</span>
+          <span class="step-title">Overview & Concepts</span>
+        </li>
+        <li class="step-item" onclick="goToStep(1)">
+          <span class="step-number">1</span>
+          <span class="step-title">GCP API & Serverless Setup</span>
+        </li>
+        <li class="step-item" onclick="goToStep(2)">
+          <span class="step-number">2</span>
+          <span class="step-title">Step 1: Access RAG Engine</span>
+        </li>
+        <li class="step-item" onclick="goToStep(3)">
+          <span class="step-number">3</span>
+          <span class="step-title">Step 2: Import GCS Data</span>
+        </li>
+        <li class="step-item" onclick="goToStep(4)">
+          <span class="step-number">4</span>
+          <span class="step-title">Step 3: Select GCS Bucket</span>
+        </li>
+        <li class="step-item" onclick="goToStep(5)">
+          <span class="step-number">5</span>
+          <span class="step-title">Step 4: Vector Store Config</span>
+        </li>
+        <li class="step-item" onclick="goToStep(6)">
+          <span class="step-number">6</span>
+          <span class="step-title">Step 5: Google ADK Code</span>
+        </li>
+        <li class="step-item" onclick="goToStep(7)">
+          <span class="step-number">7</span>
+          <span class="step-title">Execution & Test Prompts</span>
+        </li>
+        <li class="step-item" onclick="goToStep(8)">
+          <span class="step-number">8</span>
+          <span class="step-title">Knowledge Assessment</span>
+        </li>
+        <li class="step-item" onclick="goToStep(9)">
+          <span class="step-number">9</span>
+          <span class="step-title">Lab Certificate</span>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+
+      <!-- STEP 0: OVERVIEW & CONCEPTS -->
+      <section class="content-panel active" id="panel-0">
+        <h1>Lab 9: RAG Engine Corpus Creation & Vertex AI Grounding</h1>
+        <p class="subtitle">Learn how to build, configure, and query a Retrieval-Augmented Generation (RAG) Corpus on Vertex AI Agent Platform and ground Google ADK agents in domain knowledge.</p>
+
+        <div class="callout callout-cyan">
+          <div class="callout-title">💡 What is RAG Engine Grounding?</div>
+          <div class="callout-content">
+            <strong>Retrieval-Augmented Generation (RAG)</strong> augments Large Language Models (LLMs) like Gemini with external factual knowledge (e.g. CME Product Specifications, FAQs, manuals, and market rules).<br>
+            Vertex AI's <strong>Agent Platform RAG Engine</strong> manages semantic document chunking, text embedding generation, and vector retrieval in a fully managed, serverless architecture.
+          </div>
+        </div>
+
+        <h2>RAG Architecture Workflow</h2>
+        <div style="background-color: var(--code-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--accent-cyan); white-space: pre; overflow-x: auto; margin: 1.5rem 0;">
+  [ Document Files ]  (Cloud Storage / PDF / DOCX / CSV)
+         │
+         ▼
+  [ Vertex AI RAG Engine ]
+         ├── 1. Chunking & Multilingual Embedding (Text Multilingual Embedding 002)
+         └── 2. Vector Indexing (Managed Agent Retrieval / Vector Search)
+         │
+         ▼
+  [ RAG Corpus: my_rag ]
+         │
+         ▼
+  [ Google ADK Agent ]  (agentplatform Client & VertexRagStore)
+         │
+         ▼
+  [ Grounded Fact-Based Answer to User ]
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t0_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Review RAG Architecture & Lab Objectives</span>
+              <span class="task-desc">Understand how document embeddings ground Gemini models in factual CME data.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 1: GCP API & SERVERLESS SETUP -->
+      <section class="content-panel" id="panel-1">
+        <h1>Step 1: GCP Prerequisites & Serverless Mode Verification</h1>
+        <p class="subtitle">Enable Vertex AI APIs, configure authentication, and verify Serverless Mode on Google Cloud Console.</p>
+
+        <div class="callout callout-amber">
+          <div class="callout-title">⚠️ Mandatory Pre-Flight Configuration</div>
+          <div class="callout-content">
+            Before creating a RAG corpus in Vertex AI Console, you <strong>MUST enable the required GCP APIs</strong> and ensure <strong>Serverless mode (Preview)</strong> is active in your project!
+          </div>
+        </div>
+
+        <h2>1. Enable Required Google Cloud APIs</h2>
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Google Cloud CLI</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code><span class="token-comment"># Enable Vertex AI, Cloud Storage, and Agent Platform APIs</span>
+<span class="token-prompt">$</span> gcloud services enable aiplatform.googleapis.com storage.googleapis.com
+
+<span class="token-comment"># Authenticate gcloud CLI & Application Default Credentials (ADC)</span>
+<span class="token-prompt">$</span> gcloud auth login
+<span class="token-prompt">$</span> gcloud auth application-default login
+
+<span class="token-comment"># Set your active GCP project</span>
+<span class="token-prompt">$</span> gcloud config set project YOUR_PROJECT_ID</code></pre>
+        </div>
+
+        <h2>2. Verify Serverless Mode in Vertex AI Console</h2>
+        <p>In the Google Cloud Console navigation menu, navigate to <strong>Agent Platform / Agents -> RAG Engine</strong>. In the top right header, verify that the <strong>Serverless mode (Preview)</strong> badge is active.</p>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t1_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Enable GCP APIs & Verify Serverless Mode</span>
+              <span class="task-desc">Run gcloud enable commands for `aiplatform.googleapis.com` and `storage.googleapis.com`.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 2: ACCESS RAG ENGINE -->
+      <section class="content-panel" id="panel-2">
+        <h1>Step 2: Accessing RAG Engine & Creating a Corpus</h1>
+        <p class="subtitle">Navigate to the RAG Engine page under Agent Platform and initiate corpus creation.</p>
+
+        <p>In the Google Cloud Console, open the left navigation menu and select <strong>Agents / RAG Engine</strong> under the Agent Platform section.</p>
+
+        <div class="screenshot-card">
+          <img src="images/rag_engine_dashboard.png" alt="RAG Engine Dashboard in Google Cloud Console">
+          <div class="screenshot-caption">Figure 9.1: Agent Platform RAG Engine dashboard displaying Serverless mode (Preview) and the "+ Create corpus" button.</div>
+        </div>
+
+        <h2>Dashboard Overview:</h2>
+        <ul>
+          <li><strong>Region Selection:</strong> Choose <code>us-central1 (Iowa)</code>.</li>
+          <li><strong>Serverless Mode Badge:</strong> Confirm the <code>Serverless mode Preview</code> pill is displayed in the upper right.</li>
+          <li><strong>Create Corpus:</strong> Click the <strong>+ Create corpus</strong> button to open the corpus configuration wizard.</li>
+        </ul>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t2_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Open RAG Engine & Click Create Corpus</span>
+              <span class="task-desc">Confirm region is set to `us-central1 (Iowa)` and serverless mode is active.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 3: IMPORT GCS DATA -->
+      <section class="content-panel" id="panel-3">
+        <h1>Step 3: Defining Corpus Metadata & Selecting Data Source</h1>
+        <p class="subtitle">Specify the corpus name, description, region, and choose Google Cloud Storage as your data source.</p>
+
+        <div class="screenshot-card">
+          <img src="images/rag_create_corpus_import.png" alt="Create Corpus Metadata and Data Source Import Options">
+          <div class="screenshot-caption">Figure 9.2: Step 1 of Create Corpus wizard – Setting Region, Corpus name, and choosing Google Cloud Storage.</div>
+        </div>
+
+        <h2>Step-by-Step Instructions:</h2>
+        <ol>
+          <li><strong>Region:</strong> Select <code>us-central1 (Iowa)</code>.</li>
+          <li><strong>Corpus Name:</strong> Enter <code>my_rag</code>.</li>
+          <li><strong>Description:</strong> Enter <code>my rag</code> or a descriptive summary (e.g. <i>CME Product Support Knowledge Base</i>).</li>
+          <li><strong>Data Source Selection:</strong> Click the card for <strong>Select from Google Cloud Storage</strong> (supported options include Local File, GCS, Google Drive, Slack, Jira, SharePoint).</li>
+        </ol>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t3_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Configure Corpus Name & Select GCS Import</span>
+              <span class="task-desc">Set corpus name to `my_rag` and select Google Cloud Storage.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 4: SELECT GCS BUCKET -->
+      <section class="content-panel" id="panel-4">
+        <h1>Step 4: Browsing & Selecting Cloud Storage Bucket</h1>
+        <p class="subtitle">Locate your GCS knowledge bucket containing CME product documentation and FAQ files.</p>
+
+        <div class="screenshot-card">
+          <img src="images/rag_select_gcs_bucket.png" alt="Select Resource Bucket Picker Modal">
+          <div class="screenshot-caption">Figure 9.3: Selecting the GCS bucket `my_cme_knowledge_bucket_123455` containing knowledge reference documents.</div>
+        </div>
+
+        <h2>Bucket Selection Workflow:</h2>
+        <ol>
+          <li>Click <strong>Browse</strong> next to the <i>Cloud storage file or folder path</i> field.</li>
+          <li>In the <strong>Select resource</strong> modal, browse your project's bucket hierarchy.</li>
+          <li>Select your CME knowledge bucket (e.g. <code>my_cme_knowledge_bucket_123455</code>).</li>
+          <li>Click <strong>Select</strong> and then click <strong>Continue</strong> to proceed to Vector Store configuration.</li>
+        </ol>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t4_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Attach GCS Knowledge Bucket</span>
+              <span class="task-desc">Select `my_cme_knowledge_bucket_123455` and click Continue.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 5: VECTOR STORE CONFIG -->
+      <section class="content-panel" id="panel-5">
+        <h1>Step 5: Embedding Model & Vector Database Configuration</h1>
+        <p class="subtitle">Select the text embedding model and choose Managed Agent Retrieval for serverless vector indexing.</p>
+
+        <div class="screenshot-card">
+          <img src="images/rag_configure_vector_store.png" alt="Configure Vector Store Step with Embedding Model and Managed Agent Retrieval">
+          <div class="screenshot-caption">Figure 9.4: Step 2 of Create Corpus wizard – Choosing Embedding Model and Managed Agent Retrieval vector database.</div>
+        </div>
+
+        <h2>Vector Store Settings:</h2>
+        <ul>
+          <li><strong>Embedding Model:</strong> Choose <code>Text Multilingual Embedding 002</code> from the dropdown menu (or <code>text-embedding-004</code>).</li>
+          <li><strong>Vector Database:</strong> Under <i>Google Cloud products</i>, select <strong>Managed Agent Retrieval (Preview)</strong>. This provides zero-infrastructure managed vector indexing optimized for Agent Platform workflows.</li>
+          <li><strong>Create Corpus:</strong> Click the blue <strong>Create corpus</strong> button on the left sidebar to start document indexing.</li>
+        </ul>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t5_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Complete Vector Store Setup & Build Corpus</span>
+              <span class="task-desc">Select `Text Multilingual Embedding 002` and `Managed Agent Retrieval`, then click Create corpus.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 6: GOOGLE ADK CODE -->
+      <section class="content-panel" id="panel-6">
+        <h1>Step 6: Connecting RAG Corpus to Google ADK Agent</h1>
+        <p class="subtitle">Integrate the created RAG Corpus into your Python Google ADK Agent using `agentplatform` and `VertexRagStore`.</p>
+
+        <div class="callout callout-purple">
+          <div class="callout-title">🐍 ADK & RAG Integration Code</div>
+          <div class="callout-content">
+            Once your RAG corpus status changes to <code>Ready</code> in Vertex AI Console, copy its resource path (e.g. <code>projects/.../ragCorpora/YOUR_CORPUS_ID</code>) and attach it to a custom ADK tool function!
+          </div>
+        </div>
+
+        <div class="code-block-container">
+          <div class="code-header">
+            <span class="code-lang-badge">Python: lab9_agent_grounding/part2_custom_rag/agent.py</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-content"><code><span class="token-keyword">import</span> agentplatform
+<span class="token-keyword">from</span> agentplatform <span class="token-keyword">import</span> types
+<span class="token-keyword">from</span> google.genai <span class="token-keyword">import</span> types <span class="token-keyword">as</span> genai_types
+<span class="token-keyword">from</span> google.adk <span class="token-keyword">import</span> Agent
+
+PROJECT_ID = <span class="token-string">"instructor-02"</span>
+LOCATION = <span class="token-string">"us-central1"</span>
+CORPUS_NAME = <span class="token-string">"projects/instructor-02/locations/us-central1/ragCorpora/4254591030004809728"</span>
+
+MODEL = <span class="token-string">"gemini-2.5-flash"</span>
+
+<span class="token-comment"># Initialize Agent Platform RAG Client</span>
+rag_client = agentplatform.Client(
+    project=PROJECT_ID,
+    location=LOCATION,
+)
+
+<span class="token-comment"># RAG Retrieval Tool Function</span>
+<span class="token-keyword">def</span> <span class="token-function">search_exchange_knowledge</span>(query: <span class="token-type">str</span>) -> <span class="token-type">str</span>:
+    <span class="token-string">"""Search the CME exchange knowledge base for information about exchanges and products."""</span>
+    response = rag_client.rag.retrieve_contexts(
+        vertex_rag_store=genai_types.VertexRagStore(
+            rag_resources=[
+                genai_types.VertexRagStoreRagResource(
+                    rag_corpus=CORPUS_NAME
+                )
+            ]
+        ),
+        query=types.RagQuery(
+            text=query,
+            rag_retrieval_config=genai_types.RagRetrievalConfig(
+                top_k=3
+            )
+        )
+    )
+    <span class="token-control">return</span> <span class="token-type">str</span>(response)
+
+<span class="token-comment"># Grounded ADK Agent</span>
+root_agent = Agent(
+    name=<span class="token-string">"cme_exchange_rag_agent"</span>,
+    model=MODEL,
+    description=<span class="token-string">"Answers questions about CME exchanges and products using RAG grounding."</span>,
+    instruction=<span class="token-string">"""
+You are a CME Exchange Support Agent.
+Use search_exchange_knowledge whenever the user asks factual questions about CME exchanges or products.
+RULES:
+- Base factual answers on information returned by the RAG tool.
+- Do not invent information.
+- If the knowledge base does not contain the answer, say so clearly.
+"""</span>,
+    tools=[search_exchange_knowledge],
+)</code></pre>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t6_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Review ADK RAG Integration Code</span>
+              <span class="task-desc">Verify how `search_exchange_knowledge` queries the Vertex AI RAG Corpus.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 7: EXECUTION & TEST PROMPTS -->
+      <section class="content-panel" id="panel-7">
+        <h1>Step 7: Execution & Verification Prompts</h1>
+        <p class="subtitle">Run the RAG-grounded ADK agent using ADK CLI and execute test queries to verify document grounding.</p>
+
+        <h2>ADK Launch Commands</h2>
+        <div class="os-tab-bar">
+          <button class="os-tab-btn active" data-os="mac" onclick="switchOsTab('mac')">🍎 macOS</button>
+          <button class="os-tab-btn" data-os="powershell" onclick="switchOsTab('powershell')">⚡ Windows (PowerShell)</button>
+          <button class="os-tab-btn" data-os="bash" onclick="switchOsTab('bash')">🐧 Linux / Git Bash</button>
+        </div>
+
+        <div class="os-content active" data-os="mac">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">macOS Terminal</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code><span class="token-comment"># Single Query Execution</span>
+<span class="token-prompt">$</span> adk run lab9_agent_grounding.part2_custom_rag "What are the core clearing rules for CME Globex?"
+
+<span class="token-comment"># Web UI Development Server</span>
+<span class="token-prompt">$</span> adk web lab9_agent_grounding.part2_custom_rag</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="powershell">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">PowerShell</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code><span class="token-comment"># Single Query Execution</span>
+<span class="token-prompt">PS></span> adk run lab9_agent_grounding.part2_custom_rag "What are the core clearing rules for CME Globex?"
+
+<span class="token-comment"># Web UI Development Server</span>
+<span class="token-prompt">PS></span> adk web lab9_agent_grounding.part2_custom_rag</code></pre>
+          </div>
+        </div>
+
+        <div class="os-content" data-os="bash">
+          <div class="code-block-container">
+            <div class="code-header">
+              <span class="code-lang-badge">Linux / Git Bash</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-content"><code><span class="token-comment"># Single Query Execution</span>
+<span class="token-prompt">$</span> adk run lab9_agent_grounding.part2_custom_rag "What are the core clearing rules for CME Globex?"
+
+<span class="token-comment"># Web UI Development Server</span>
+<span class="token-prompt">$</span> adk web lab9_agent_grounding.part2_custom_rag</code></pre>
+          </div>
+        </div>
+
+        <h2>Test Prompts for RAG Grounding Verification</h2>
+
+        <div class="prompt-card">
+          <div class="prompt-header">Test Case 1: Knowledge Base Specification Query</div>
+          <div class="prompt-text">What is the contract specification and settlement process for E-mini S&P 500 futures according to the knowledge base?</div>
+        </div>
+
+        <div class="prompt-card">
+          <div class="prompt-header">Test Case 2: Document FAQ Query</div>
+          <div class="prompt-text">What are the operational hours and support procedures for CME Globex maintenance windows?</div>
+        </div>
+
+        <div class="prompt-card">
+          <div class="prompt-header">Test Case 3: Out-of-Bounds Knowledge Check (Strict Fallback)</div>
+          <div class="prompt-text">What is the capital city of France?</div>
+        </div>
+        <p><strong>Expected Behavior:</strong> RAG tool returns no matching contexts; agent responds clearly with <i>"Information not found in the knowledge base."</i> as per strict grounding policy.</p>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t7_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Run RAG Verification & Test Cases</span>
+              <span class="task-desc">Verify that Gemini answers are strictly grounded in retrieved RAG contexts.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 8: QUIZ ASSESSMENT -->
+      <section class="content-panel" id="panel-8">
+        <h1>Step 8: Knowledge Assessment</h1>
+        <p class="subtitle">Test your understanding of RAG Corpus creation, vector store configuration, and ADK grounding.</p>
+
+        <div class="quiz-card">
+          <div class="quiz-question">1. Which Google Cloud service mode must be enabled for managed RAG Engine corpus creation on Vertex AI Agent Platform?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" data-correct="false">A) BigQuery Enterprise Edition</div>
+            <div class="quiz-option" data-correct="true">B) Serverless mode (Preview)</div>
+            <div class="quiz-option" data-correct="false">C) Cloud Run Dedicated Instances</div>
+            <div class="quiz-option" data-correct="false">D) Kubernetes Engine Autopilot</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">2. What vector database product option provides managed, zero-infrastructure vector indexing in Vertex AI RAG Engine?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" data-correct="false">A) Redis Enterprise Vector Store</div>
+            <div class="quiz-option" data-correct="true">B) Managed Agent Retrieval (Preview)</div>
+            <div class="quiz-option" data-correct="false">C) Cloud SQL for PostgreSQL</div>
+            <div class="quiz-option" data-correct="false">D) Firestore Document Store</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-question">3. What is the primary purpose of grounding Large Language Models using VertexRagStore in Google ADK?</div>
+          <div class="quiz-options">
+            <div class="quiz-option" data-correct="true">A) To ensure factual answers are generated strictly from indexed private documents, preventing model hallucinations</div>
+            <div class="quiz-option" data-correct="false">B) To reduce network bandwidth during model training</div>
+            <div class="quiz-option" data-correct="false">C) To automatically execute SQL write queries to BigQuery</div>
+            <div class="quiz-option" data-correct="false">D) To convert Python code into REST APIs</div>
+          </div>
+        </div>
+
+        <ul class="task-checklist">
+          <li class="task-checkbox-container" data-task-id="t8_1" onclick="toggleTask(this)">
+            <div class="custom-checkbox"><svg class="check-mark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <div class="task-content">
+              <span class="task-label">Complete Knowledge Quiz</span>
+              <span class="task-desc">Answer all assessment questions to complete Lab 9.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- STEP 9: CERTIFICATE -->
+      <section class="content-panel" id="panel-9">
+        <h1>Step 9: Lab Completion Certificate</h1>
+        <p class="subtitle">Congratulations! You have successfully completed Lab 9: RAG Corpus Creation & Vertex AI Grounding.</p>
+
+        <div class="cert-canvas-container">
+          <input type="text" id="studentNameInput" class="cert-input" placeholder="Enter Your Name for Certificate" oninput="generateCertificate()">
+          <div class="cert-actions">
+            <button class="btn-cert btn-download" onclick="downloadCertificate()">📥 Download Certificate</button>
+            <button class="btn-cert btn-share" onclick="shareCertificate()">🔗 Share Certificate</button>
+          </div>
+          <canvas id="certCanvas" width="800" height="500"></canvas>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Sticky Footer Navigation -->
+    <footer class="nav-bar">
+      <button class="btn-nav btn-prev" id="btnPrev" onclick="changeStep(-1)">← Previous</button>
+      <span class="footer-copyright">© 2026 Navdeep Kaur · Enterprise Agentic AI Training Series. All rights reserved.</span>
+      <button class="btn-nav btn-next" id="btnNext" onclick="changeStep(1)">Next Step →</button>
+    </footer>
+  </div>
+
+  <!-- JavaScript Controller -->
+  <script>
+    let currentStep = 0;
+    const totalSteps = 10;
+
+    function goToStep(stepIndex) {
+      if (stepIndex < 0 || stepIndex >= totalSteps) return;
+
+      document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active'));
+
+      const targetPanel = document.getElementById(`panel-${stepIndex}`);
+      if (targetPanel) targetPanel.classList.add('active');
+
+      const stepItems = document.querySelectorAll('.step-item');
+      if (stepItems[stepIndex]) stepItems[stepIndex].classList.add('active');
+
+      currentStep = stepIndex;
+      updateNavButtons();
+
+      if (currentStep === 9) {
+        generateCertificate();
+      }
+    }
+
+    function changeStep(delta) {
+      goToStep(currentStep + delta);
+    }
+
+    function updateNavButtons() {
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+
+      btnPrev.disabled = (currentStep === 0);
+
+      if (currentStep === totalSteps - 1) {
+        btnNext.innerText = 'Completed 🎉';
+        btnNext.disabled = true;
+      } else {
+        btnNext.innerText = 'Next Step →';
+        btnNext.disabled = false;
+      }
+    }
+
+    function switchOsTab(os) {
+      document.querySelectorAll('.os-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-os') === os);
+      });
+      document.querySelectorAll('.os-content').forEach(content => {
+        content.classList.toggle('active', content.getAttribute('data-os') === os);
+      });
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      document.getElementById('themeIcon').innerText = newTheme === 'dark' ? '🌙' : '☀️';
+      if (currentStep === 9) generateCertificate();
+    }
+
+    function toggleTask(element) {
+      element.classList.toggle('checked');
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const totalTasks = document.querySelectorAll('.task-checkbox-container').length;
+      const checkedTasks = document.querySelectorAll('.task-checkbox-container.checked').length;
+      const percentage = totalTasks > 0 ? Math.round((checkedTasks / totalTasks) * 100) : 0;
+
+      document.getElementById('progressBar').style.width = `${percentage}%`;
+      document.getElementById('progressPercent').innerText = `${percentage}%`;
+
+      document.querySelectorAll('.content-panel').forEach((panel, idx) => {
+        const panelTasks = panel.querySelectorAll('.task-checkbox-container');
+        if (panelTasks.length > 0) {
+          const allDone = Array.from(panelTasks).every(t => t.classList.contains('checked'));
+          const stepItem = document.querySelectorAll('.step-item')[idx];
+          if (stepItem) {
+            stepItem.classList.toggle('completed', allDone);
+          }
+        }
+      });
+    }
+
+    function copyCode(btn) {
+      const code = btn.closest('.code-block-container').querySelector('pre.code-content').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = 'Copied!';
+        btn.style.backgroundColor = '#10b981';
+        btn.style.color = '#ffffff';
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.style.backgroundColor = '';
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+
+    function setupQuizListeners() {
+      document.querySelectorAll('.quiz-option').forEach(option => {
+        option.addEventListener('click', function() {
+          const parent = this.closest('.quiz-options');
+          parent.querySelectorAll('.quiz-option').forEach(opt => {
+            opt.classList.remove('correct', 'incorrect');
+          });
+          if (this.getAttribute('data-correct') === 'true') {
+            this.classList.add('correct');
+          } else {
+            this.classList.add('incorrect');
+          }
+        });
+      });
+    }
+
+    function generateCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const name = document.getElementById('studentNameInput').value.trim() || 'Valued Developer';
+
+      ctx.fillStyle = '#0b0f19';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 16px Inter, sans-serif';
+      ctx.fillText('GOOGLE AGENTIC AI DEVELOPER SERIES', canvas.width / 2, 80);
+
+      ctx.fillStyle = '#f1f5f9';
+      ctx.font = 'extrabold 28px Outfit, sans-serif';
+      ctx.fillText('CERTIFICATE OF COMPLETION', canvas.width / 2, 125);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '15px Inter, sans-serif';
+      ctx.fillText('This certifies that', canvas.width / 2, 175);
+
+      ctx.fillStyle = '#60a5fa';
+      ctx.font = 'bold 32px Outfit, sans-serif';
+      ctx.fillText(name, canvas.width / 2, 230);
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '16px Inter, sans-serif';
+      ctx.fillText('has successfully completed Lab 9:', canvas.width / 2, 280);
+
+      ctx.fillStyle = '#34d399';
+      ctx.font = 'bold 20px Outfit, sans-serif';
+      ctx.fillText('RAG Engine Corpus Creation & Vertex AI Grounding', canvas.width / 2, 320);
+
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      ctx.fillStyle = '#64748b';
+      ctx.font = '13px Inter, sans-serif';
+      ctx.fillText(`Issued on ${today} · Authorized Training Curriculum`, canvas.width / 2, 400);
+
+      ctx.fillStyle = '#06b6d4';
+      ctx.font = 'bold 14px Outfit, sans-serif';
+      ctx.fillText('Instructor: Navdeep Kaur', canvas.width / 2, 440);
+    }
+
+    function downloadCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = 'Google_ADK_Lab9_Certificate.png';
+      link.href = image;
+      link.click();
+    }
+
+    function shareCertificate() {
+      const shareText = `I just completed Lab 9: RAG Engine Corpus Creation & Vertex AI Grounding with Google ADK! 🚀`;
+      if (navigator.share) {
+        navigator.share({ title: 'Lab 9 Certificate', text: shareText, url: window.location.href });
+      } else {
+        navigator.clipboard.writeText(shareText);
+        alert('Share text copied to clipboard!');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setupQuizListeners();
+      updateNavButtons();
+      updateProgress();
+    });
+  </script>
+</body>
+</html>
